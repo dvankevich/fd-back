@@ -1,0 +1,51 @@
+@baseUrl = http://localhost:3000
+
+### Register new user
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "olena",
+  "email": "olena@example.com",
+  "password": "securepass123",
+  "name": "Olena Kravets"
+}
+
+### Login
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "olena",
+  "password": "securepass123"
+}
+
+### Збереження токенів після логіну
+@accessToken = {{login.response.body.accessToken}}
+@refreshToken = {{login.response.body.refreshToken}}
+
+### Refresh tokens
+# @name refresh
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Оновлення токенів після refresh
+@accessToken = {{refresh.response.body.accessToken}}
+@refreshToken = {{refresh.response.body.refreshToken}}
+
+### Logout
+POST {{baseUrl}}/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Current user profile
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{accessToken}}
