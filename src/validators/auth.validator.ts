@@ -6,12 +6,6 @@ import { registry } from "../openapi.ts";
 export const RegisterSchema = registry.register(
   "Register",
   z.object({
-    username: z
-      .string()
-      .regex(/^[a-zA-Z0-9_]+$/)
-      .min(3)
-      .max(30)
-      .openapi({ example: "user01" }),
     email: z.email().openapi({ example: "user01@example.com" }),
     password: z.string().min(8).openapi({ example: "securepass123" }),
     name: z.string().min(1).max(100).openapi({ example: "FirstName LastName" }),
@@ -21,7 +15,7 @@ export const RegisterSchema = registry.register(
 export const LoginSchema = registry.register(
   "Login",
   z.object({
-    username: z.string().min(1).openapi({ example: "user01" }),
+    email: z.email().openapi({ example: "user01@example.com" }),
     password: z.string().min(1).openapi({ example: "securepass123" }),
   }),
 );
@@ -31,10 +25,12 @@ export const LoginSchema = registry.register(
 export const UserSchema = registry.register(
   "User",
   z.object({
-    id: z.number().int().positive().openapi({ example: 1 }),
-    username: z.string().openapi({ example: "user01" }),
-    email: z.email().openapi({ example: "user01@example.com" }),
+    id: z.string().openapi({ example: "64c8d958249fae54bae90bb9" }),
     name: z.string().openapi({ example: "FirstName LastName" }),
+    email: z.email().openapi({ example: "user01@example.com" }),
+    avatar: z.string().nullable().openapi({
+      example: "https://res.cloudinary.com/.../avatar.jpg",
+    }),
     createdAt: z
       .iso.datetime()
       .openapi({ example: "2025-01-10T12:00:00.000Z" }),
@@ -66,7 +62,7 @@ export const AuthResponseSchema = registry.register(
       example:
         "b7a5d9c8a296022d69b264168629b27e7fa55ffe883d7b4653c9425fd1f3667b317637810c06ec7e",
     }),
-    user: UserSchema.omit({ createdAt: true }), // у register/login createdAt не повертається
+    user: UserSchema.omit({ createdAt: true }),
   }),
 );
 
@@ -83,7 +79,7 @@ export const ValidationErrorSchema = registry.register(
     error: z.string().openapi({ example: "Validation failed" }),
     details: z.record(z.string(), z.array(z.string())).openapi({
       example: {
-        username: ["Too small: expected string to have >=3 characters"],
+        email: ["Invalid email address"],
         password: ["Too small: expected string to have >=8 characters"],
       },
     }),
@@ -118,7 +114,7 @@ registry.registerPath({
       },
     },
     409: {
-      description: "Username or email already taken",
+      description: "Email already taken",
       content: {
         "application/json": { schema: ErrorSchema },
       },
@@ -137,7 +133,7 @@ registry.registerPath({
   path: "/api/auth/login",
   tags: ["Auth"],
   summary: "Login user",
-  description: "Authenticates user and returns access + refresh tokens.",
+  description: "Authenticates user by email and returns access + refresh tokens.",
   request: {
     body: {
       content: {

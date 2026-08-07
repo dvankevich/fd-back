@@ -1,7 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// prisma/schema.prisma
 
 generator client {
   provider = "prisma-client"
@@ -12,23 +9,135 @@ datasource db {
   provider = "postgresql"
 }
 
+// ====================== Auth ======================
+
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
+  id        String   @id @default(cuid())
   email     String   @unique
   password  String
   name      String
+  avatar    String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  // Relations
   refreshTokens RefreshToken[]
+  recipes       Recipe[]
+  testimonials  Testimonial[]
+  favorites     Favorite[]
+  followers     Follow[]       @relation("Followers")
+  following     Follow[]       @relation("Following")
 }
 
 model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int
+  id        String   @id @default(cuid())
+  userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
+// ====================== Reference data ======================
+
+model Category {
+  id      String   @id
+  name    String   @unique
+  recipes Recipe[]
+}
+
+model Area {
+  id      String   @id
+  name    String   @unique
+  recipes Recipe[]
+}
+
+model Ingredient {
+  id          String             @id
+  name        String
+  description String?
+  img         String?
+  recipes     RecipeIngredient[]
+}
+
+// ====================== Recipes ======================
+
+model Recipe {
+  id           String   @id @default(cuid())
+  title        String
+  instructions String
+  description  String?
+  thumb        String?
+  preview      String?
+  time         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  areaId String
+  area   Area   @relation(fields: [areaId], references: [id])
+
+  ingredients RecipeIngredient[]
+  favorites   Favorite[]
+
+  @@index([ownerId])
+  @@index([categoryId])
+  @@index([areaId])
+}
+
+model RecipeIngredient {
+  recipeId     String
+  ingredientId String
+  measure      String
+
+  recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@id([recipeId, ingredientId])
+}
+
+// ====================== Social ======================
+
+model Favorite {
+  userId    String
+  recipeId  String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, recipeId])
+  @@index([recipeId])
+}
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+// ====================== Testimonials ======================
+
+model Testimonial {
+  id          String   @id
+  testimonial String
+  createdAt   DateTime @default(now())
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}

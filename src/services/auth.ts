@@ -17,9 +17,9 @@ export const verifyPassword = (password: string, hash: string) =>
 export const hashToken = (token: string): string =>
   crypto.createHash("sha256").update(token).digest("hex");
 
-export const createTokens = async (userId: number) => {
+export const createTokens = async (userId: string) => {
   const accessToken = jwt.sign(
-    { sub: String(userId) },
+    { sub: userId },
     env.JWT_SECRET!,
     { expiresIn: ACCESS_TOKEN_LIFETIME / 1000 },
   );
