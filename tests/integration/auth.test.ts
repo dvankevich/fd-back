@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import request from "supertest";
 import app from "../../app.ts";
 import prisma from "../../prisma/client.ts";
+import { hashToken } from "../../src/services/auth.ts";
 
 const userData = {
-  username: "testuser",
   email: "test@example.com",
   password: "securepass123",
   name: "Test User",
@@ -26,7 +26,6 @@ describe("Auth API (integration)", () => {
   });
 
   // ---------- REGISTER ----------
-
   describe("POST /api/auth/register", () => {
     it("should register a new user", async () => {
       const res = await request(app)
@@ -38,37 +37,23 @@ describe("Auth API (integration)", () => {
         accessToken: expect.any(String),
         refreshToken: expect.any(String),
         user: {
-          id: expect.any(Number),
-          username: userData.username,
+          id: expect.any(String),
           email: userData.email,
           name: userData.name,
+          avatar: null,
         },
       });
 
       const cookies = res.headers["set-cookie"] as string[] | string | undefined;
       expect(cookies).toBeDefined();
-
       const cookieList = Array.isArray(cookies) ? cookies : [cookies!];
       expect(cookieList.some((c) => c.startsWith("refreshToken="))).toBe(true);
 
       const dbUser = await prisma.user.findUnique({
-        where: { username: userData.username },
+        where: { email: userData.email },
       });
       expect(dbUser).not.toBeNull();
       expect(dbUser!.password).not.toBe(userData.password); // захешований
-    });
-
-    it("should return 409 if username already taken", async () => {
-      await request(app).post("/api/auth/register").send(userData);
-
-      const res = await request(app)
-        .post("/api/auth/register")
-        .send({ ...userData, email: "other@example.com" })
-        .expect(409);
-
-      expect(res.body).toEqual({
-        error: "Username or email already taken",
-      });
     });
 
     it("should return 409 if email already taken", async () => {
@@ -76,11 +61,15 @@ describe("Auth API (integration)", () => {
 
       const res = await request(app)
         .post("/api/auth/register")
-        .send({ ...userData, username: "otheruser" })
+        .send({
+          email: userData.email,
+          password: "anotherpass123",
+          name: "Another User",
+        })
         .expect(409);
 
       expect(res.body).toEqual({
-        error: "Username or email already taken",
+        error: "Email already taken",
       });
     });
 
@@ -88,7 +77,6 @@ describe("Auth API (integration)", () => {
       const res = await request(app)
         .post("/api/auth/register")
         .send({
-          username: "ab", // too short
           email: "not-email",
           password: "123",
           name: "",
@@ -101,7 +89,6 @@ describe("Auth API (integration)", () => {
   });
 
   // ---------- LOGIN ----------
-
   describe("POST /api/auth/login", () => {
     beforeEach(async () => {
       await request(app).post("/api/auth/register").send(userData);
@@ -111,7 +98,7 @@ describe("Auth API (integration)", () => {
       const res = await request(app)
         .post("/api/auth/login")
         .send({
-          username: userData.username,
+          email: userData.email,
           password: userData.password,
         })
         .expect(200);
@@ -120,9 +107,10 @@ describe("Auth API (integration)", () => {
         accessToken: expect.any(String),
         refreshToken: expect.any(String),
         user: {
-          username: userData.username,
+          id: expect.any(String),
           email: userData.email,
           name: userData.name,
+          avatar: null,
         },
       });
     });
@@ -131,7 +119,7 @@ describe("Auth API (integration)", () => {
       const res = await request(app)
         .post("/api/auth/login")
         .send({
-          username: userData.username,
+          email: userData.email,
           password: "wrongpassword",
         })
         .expect(401);
@@ -143,7 +131,7 @@ describe("Auth API (integration)", () => {
       const res = await request(app)
         .post("/api/auth/login")
         .send({
-          username: "unknown",
+          email: "unknown@example.com",
           password: "securepass123",
         })
         .expect(401);
@@ -154,7 +142,7 @@ describe("Auth API (integration)", () => {
     it("should return 422 for empty credentials", async () => {
       const res = await request(app)
         .post("/api/auth/login")
-        .send({ username: "", password: "" })
+        .send({ email: "", password: "" })
         .expect(422);
 
       expect(res.body.error).toBe("Validation failed");
@@ -162,7 +150,6 @@ describe("Auth API (integration)", () => {
   });
 
   // ---------- ME ----------
-
   describe("GET /api/auth/me", () => {
     it("should return current user with valid token", async () => {
       const registerRes = await request(app)
@@ -177,17 +164,16 @@ describe("Auth API (integration)", () => {
         .expect(200);
 
       expect(res.body).toMatchObject({
-        id: expect.any(Number),
-        username: userData.username,
+        id: expect.any(String),
         email: userData.email,
         name: userData.name,
+        avatar: null,
         createdAt: expect.any(String),
       });
     });
 
     it("should return 401 without token", async () => {
       const res = await request(app).get("/api/auth/me").expect(401);
-
       expect(res.body).toEqual({ error: "Authentication required" });
     });
 
@@ -202,7 +188,6 @@ describe("Auth API (integration)", () => {
   });
 
   // ---------- REFRESH ----------
-
   describe("POST /api/auth/refresh", () => {
     it("should refresh tokens with valid refresh token (body)", async () => {
       const registerRes = await request(app)
@@ -221,9 +206,9 @@ describe("Auth API (integration)", () => {
         refreshToken: expect.any(String),
       });
 
-      // Старий refresh token має бути видалений (rotation)
+      // Старий refresh token (хеш) має бути видалений (rotation)
       const oldToken = await prisma.refreshToken.findFirst({
-        where: { token: refreshToken },
+        where: { token: hashToken(refreshToken) },
       });
       expect(oldToken).toBeNull();
     });
@@ -246,7 +231,6 @@ describe("Auth API (integration)", () => {
 
     it("should return 401 if refresh token is missing", async () => {
       const res = await request(app).post("/api/auth/refresh").expect(401);
-
       expect(res.body).toEqual({ error: "Refresh token not provided" });
     });
 
@@ -261,7 +245,6 @@ describe("Auth API (integration)", () => {
   });
 
   // ---------- LOGOUT ----------
-
   describe("POST /api/auth/logout", () => {
     it("should logout and clear refresh token", async () => {
       const registerRes = await request(app)
@@ -276,7 +259,7 @@ describe("Auth API (integration)", () => {
         .expect(204);
 
       const tokenInDb = await prisma.refreshToken.findFirst({
-        where: { token: refreshToken },
+        where: { token: hashToken(refreshToken) },
       });
       expect(tokenInDb).toBeNull();
     });

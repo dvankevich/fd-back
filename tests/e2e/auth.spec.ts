@@ -18,15 +18,19 @@ test.describe("Auth E2E", () => {
 
     const registerBody = await registerRes.json();
     expect(registerBody.accessToken).toBeTruthy();
-    expect(registerBody.user.username).toBe(userA.username);
+    expect(registerBody.user.email).toBe(userA.email);
+    expect(registerBody.user.name).toBe(userA.name);
+    expect(registerBody.user.avatar).toBeNull();
 
     // Me
     const meRes = await request.get("/api/auth/me", {
       headers: { Authorization: `Bearer ${registerBody.accessToken}` },
     });
     expect(meRes.status()).toBe(200);
+
     const me = await meRes.json();
     expect(me.email).toBe(userA.email);
+    expect(me.name).toBe(userA.name);
 
     // Logout
     const logoutRes = await request.post("/api/auth/logout", {
@@ -39,7 +43,7 @@ test.describe("Auth E2E", () => {
     await register(request);
 
     const res = await request.post("/api/auth/login", {
-      data: { username: userA.username, password: "wrongpassword" },
+      data: { email: userA.email, password: "wrongpassword" },
     });
 
     expect(res.status()).toBe(401);
@@ -54,6 +58,7 @@ test.describe("Auth E2E", () => {
     });
 
     expect(res.status()).toBe(200);
+
     const body = await res.json();
     expect(body.accessToken).toBeTruthy();
     expect(body.refreshToken).toBeTruthy();

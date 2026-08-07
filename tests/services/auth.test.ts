@@ -28,12 +28,12 @@ vi.mock("../../prisma/client.ts", () => ({
 }));
 
 describe("createTokens", () => {
-  const userId = 42;
+  const userId = "clx1234567890abcdefghij"; // string id
   const mockCreate = vi.mocked(prisma.refreshToken.create);
 
   beforeEach(() => {
     mockCreate.mockResolvedValue({
-      id: 1,
+      id: "token-id-1",
       userId,
       token: "mocked",
       expiresAt: new Date(),
@@ -56,10 +56,9 @@ describe("createTokens", () => {
 
   it("should create a valid JWT access token with correct sub", async () => {
     const { accessToken } = await createTokens(userId);
-
     const decoded = jwt.verify(accessToken, env.JWT_SECRET) as jwt.JwtPayload;
 
-    expect(decoded.sub).toBe(String(userId));
+    expect(decoded.sub).toBe(userId);
   });
 
   it("should generate a random refresh token (hex, 80 chars)", async () => {
