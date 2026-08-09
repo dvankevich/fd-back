@@ -53,6 +53,7 @@
     "@types/supertest": "^7.2.1",
     "@types/swagger-ui-express": "^4.1.8",
     "@vitest/coverage-v8": "^4.1.10",
+    "csv-parse": "^7.0.2",
     "dotenv-cli": "^11.0.0",
     "prisma": "7.9.1",
     "supertest": "^7.2.2",
