@@ -127,8 +127,17 @@ export const updateAvatar = async (
     logger.info({ userId }, "Avatar updated");
 
     res.status(200).json({ avatar: updatedUser.avatar });
-  } catch (err) {
+  } catch (err: any) {
     logger.error({ err, userId }, "Failed to upload avatar");
+
+    // Помилки від Cloudinary (невалідний файл тощо) → 400
+    if (
+      err.http_code === 400 ||
+      err.message?.toLowerCase().includes("invalid image")
+    ) {
+      throw createHttpError(400, "Invalid image file");
+    }
+
     throw createHttpError(500, "Failed to upload avatar");
   } finally {
     await fs.unlink(req.file.path).catch(() => {});

@@ -12,7 +12,7 @@ import {
 import authenticate from "../middleware/authenticate.ts";
 import { validateParams } from "../middleware/validate.ts";
 import { UserIdParamSchema } from "../validators/users.validator.ts";
-import { upload } from "../middleware/upload.ts";
+import { uploadAvatar } from "../middleware/upload.ts";
 
 const router = Router();
 
@@ -20,11 +20,7 @@ router.use(authenticate);
 
 router.get("/me", getCurrentUser as RequestHandler);
 router.get("/following", getFollowing as RequestHandler);
-router.patch(
-  "/avatar",
-  upload.single("avatar"),
-  updateAvatar as RequestHandler,
-);
+router.patch("/avatar", uploadAvatar, updateAvatar as RequestHandler);
 
 router.get(
   "/:id",

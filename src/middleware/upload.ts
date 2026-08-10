@@ -1,3 +1,5 @@
+import type { Request, Response, NextFunction } from "express";
+import createHttpError from "http-errors";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -32,3 +34,27 @@ export const upload = multer({
     }
   },
 });
+
+export const uploadAvatar = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  upload.single("avatar")(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      // Ліміт розміру, неочікуване поле тощо
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return next(createHttpError(400, "File too large (max 5MB)"));
+      }
+      return next(createHttpError(400, err.message));
+    }
+
+    if (err) {
+      // fileFilter (не зображення)
+      return next(createHttpError(400, err.message));
+    }
+
+    next();
+  });
+};
+
