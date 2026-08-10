@@ -1,0 +1,59 @@
+@baseUrl = http://localhost:3000
+
+### ========== AUTH (для отримання токена) ==========
+
+### Login
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "olena@example.com",
+  "password": "securepass123"
+}
+
+### Збереження токенів
+@accessToken = {{login.response.body.accessToken}}
+@refreshToken = {{login.response.body.refreshToken}}
+@currentUserId = {{login.response.body.user.id}}
+
+### ========== USERS ==========
+
+### 1. Get current user (me) + counts
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{accessToken}}
+
+### 2. Get another user by id
+GET {{baseUrl}}/api/users/64c8d958249fae54bae90bb9
+Authorization: Bearer {{accessToken}}
+
+### 3. Update avatar
+PATCH {{baseUrl}}/api/users/avatar
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="avatar"; filename="avatar.jpg"
+Content-Type: image/jpeg
+
+< ./avatar.jpeg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 4. Get followers of a user
+GET {{baseUrl}}/api/users/{{currentUserId}}/followers
+Authorization: Bearer {{accessToken}}
+
+### 5. Get following (кого я читаю)
+GET {{baseUrl}}/api/users/following
+Authorization: Bearer {{accessToken}}
+
+### 6. Follow a user
+# Заміни targetUserId на id іншого користувача
+@targetUserId = 64c8d958249fae54bae90bb8
+
+POST {{baseUrl}}/api/users/{{targetUserId}}/follow
+Authorization: Bearer {{accessToken}}
+
+### 7. Unfollow a user
+DELETE {{baseUrl}}/api/users/{{targetUserId}}/follow
+Authorization: Bearer {{accessToken}}

@@ -10,7 +10,9 @@ import cookieParser from "cookie-parser";
 import { pinoHttp } from "pino-http";
 import { errorHandler } from "./src/middleware/errorHandler.ts";
 import logger from "./src/logger.ts";
+
 import authRouter from "./src/routes/auth.routes.ts";
+import usersRouter from "./src/routes/users.routes.ts";
 
 import { generateOpenApiDocument } from "./src/openapi.ts";
 import prisma from "./prisma/client.ts";
@@ -115,6 +117,7 @@ const openApiDocument = generateOpenApiDocument();
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 app.use("/api/auth", authLimiter, authRouter);
+app.use("/api/users", usersRouter);
 
 // 404 Not Found handler
 app.use((req: Request, res: Response) => {
