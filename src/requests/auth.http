@@ -45,6 +45,3 @@ Content-Type: application/json
   "refreshToken": "{{refreshToken}}"
 }
 
-### Current user profile
-GET {{baseUrl}}/api/auth/me
-Authorization: Bearer {{accessToken}}

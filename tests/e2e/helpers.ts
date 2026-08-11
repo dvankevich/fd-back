@@ -14,8 +14,16 @@ export const userB = {
 };
 
 export async function cleanDatabase() {
-  await prisma.refreshToken.deleteMany();
-  await prisma.user.deleteMany();
+  // Порядок важливий: спочатку залежні таблиці, потім User
+  await prisma.$transaction([
+    prisma.refreshToken.deleteMany(),
+    prisma.favorite.deleteMany(),
+    prisma.follow.deleteMany(),
+    prisma.recipeIngredient.deleteMany(),
+    prisma.recipe.deleteMany(),
+    prisma.testimonial.deleteMany(),
+    prisma.user.deleteMany(),
+  ]);
 }
 
 export async function register(

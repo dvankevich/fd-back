@@ -149,44 +149,6 @@ describe("Auth API (integration)", () => {
     });
   });
 
-  // ---------- ME ----------
-  describe("GET /api/auth/me", () => {
-    it("should return current user with valid token", async () => {
-      const registerRes = await request(app)
-        .post("/api/auth/register")
-        .send(userData);
-
-      const { accessToken } = registerRes.body;
-
-      const res = await request(app)
-        .get("/api/auth/me")
-        .set("Authorization", `Bearer ${accessToken}`)
-        .expect(200);
-
-      expect(res.body).toMatchObject({
-        id: expect.any(String),
-        email: userData.email,
-        name: userData.name,
-        avatar: null,
-        createdAt: expect.any(String),
-      });
-    });
-
-    it("should return 401 without token", async () => {
-      const res = await request(app).get("/api/auth/me").expect(401);
-      expect(res.body).toEqual({ error: "Authentication required" });
-    });
-
-    it("should return 401 with invalid token", async () => {
-      const res = await request(app)
-        .get("/api/auth/me")
-        .set("Authorization", "Bearer invalid.token.here")
-        .expect(401);
-
-      expect(res.body).toEqual({ error: "Invalid or expired token" });
-    });
-  });
-
   // ---------- REFRESH ----------
   describe("POST /api/auth/refresh", () => {
     it("should refresh tokens with valid refresh token (body)", async () => {

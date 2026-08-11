@@ -22,8 +22,8 @@ test.describe("Auth E2E", () => {
     expect(registerBody.user.name).toBe(userA.name);
     expect(registerBody.user.avatar).toBeNull();
 
-    // Me
-    const meRes = await request.get("/api/auth/me", {
+    // Me (/api/users/me)
+    const meRes = await request.get("/api/users/me", {
       headers: { Authorization: `Bearer ${registerBody.accessToken}` },
     });
     expect(meRes.status()).toBe(200);

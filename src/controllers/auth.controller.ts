@@ -159,26 +159,3 @@ export const logout = async (req: Request, res: Response) => {
   res.status(204).end();
 };
 
-export const me = async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user.sub; // вже string
-
-  logger.debug({ userId }, "Get current user profile");
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      avatar: true,
-      createdAt: true,
-    },
-  });
-
-  if (!user) {
-    logger.debug({ userId }, "Get profile failed: user not found");
-    throw createHttpError(401, "User not found");
-  }
-
-  res.status(200).json(user);
-};
