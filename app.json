@@ -4,6 +4,25 @@
     "dokku": {
       "predeploy": "npx prisma migrate deploy"
     }
+  },
+  "healthchecks": {
+    "web": [
+      {
+        "name": "Liveness Check",
+        "type": "http",
+        "path": "/healthz",
+        "attempts": 3,
+        "timeout": 5,
+        "wait": 5
+      },
+      {
+        "name": "Readiness Check (DB Connection)",
+        "type": "http",
+        "path": "/readyz",
+        "attempts": 5,
+        "timeout": 5,
+        "wait": 5
+      }
+    ]
   }
 }
-
