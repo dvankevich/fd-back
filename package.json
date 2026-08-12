@@ -4,7 +4,7 @@
   "main": "index.ts",
   "scripts": {
     "dev": "tsx watch index.ts",
-    "build": "tsup index.ts --format esm --clean",
+    "build": "tsup index.ts prisma/seed.ts --format esm --clean",
     "start": "node dist/index.js",
     "postinstall": "prisma generate && npm run build",
     "test": "npm run test:all",
