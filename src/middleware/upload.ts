@@ -2,11 +2,12 @@ import type { Request, Response, NextFunction } from "express";
 import createHttpError from "http-errors";
 import multer from "multer";
 import path from "path";
-import { fileURLToPath } from "url";
+// import { fileURLToPath } from "url";
 import fs from "fs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadDir = path.join(__dirname, "../../uploads");
+// const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// const uploadDir = path.join(__dirname, "../../uploads");
+const uploadDir = path.join(process.cwd(), "uploads");
 
 // Створюємо папку uploads, якщо її немає
 if (!fs.existsSync(uploadDir)) {
