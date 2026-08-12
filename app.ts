@@ -14,6 +14,7 @@ import logger from "./src/logger.ts";
 import authRouter from "./src/routes/auth.routes.ts";
 import usersRouter from "./src/routes/users.routes.ts";
 import categoriesRouter from "./src/routes/categories.routes.ts";
+import areasRouter from "./src/routes/areas.routes.ts";
 
 import { generateOpenApiDocument } from "./src/openapi.ts";
 import prisma from "./prisma/client.ts";
@@ -120,6 +121,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 app.use("/api/auth", authLimiter, authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/categories", categoriesRouter);
+app.use("/api/areas", areasRouter);
 
 // 404 Not Found handler
 app.use((req: Request, res: Response) => {

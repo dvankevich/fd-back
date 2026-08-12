@@ -1,0 +1,4 @@
+@baseUrl = http://localhost:3000
+
+### Get all areas
+GET {{baseUrl}}/api/areas
