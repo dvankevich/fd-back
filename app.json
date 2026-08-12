@@ -1,0 +1,9 @@
+{
+  "name": "Foodies API",
+  "scripts": {
+    "dokku": {
+      "predeploy": "npx prisma migrate deploy"
+    }
+  }
+}
+

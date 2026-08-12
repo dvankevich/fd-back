@@ -41,7 +41,7 @@ const authLimiter = rateLimit({
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         logger.debug({ origin }, "CORS blocked origin");

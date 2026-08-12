@@ -4,6 +4,7 @@
   "main": "index.ts",
   "scripts": {
     "dev": "tsx watch index.ts",
+    "postinstall": "prisma generate",
     "start": "node --import tsx index.ts",
     "test": "npm run test:all",
     "test:unit": "vitest run tests/validators tests/services tests/controllers",
@@ -15,7 +16,6 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
-    
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
@@ -62,7 +62,7 @@
     "dotenv-cli": "^11.0.0",
     "prisma": "7.9.1",
     "supertest": "^7.2.2",
-    "tsx": "^4.23.5",
+    "tsx": "^4.23.12",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
