@@ -7,8 +7,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcrypt";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.join(__dirname, "data");
+// const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// const dataDir = path.join(__dirname, "data");
+const dataDir = path.join(process.cwd(), "prisma", "data");
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
