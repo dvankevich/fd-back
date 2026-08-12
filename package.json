@@ -4,8 +4,9 @@
   "main": "index.ts",
   "scripts": {
     "dev": "tsx watch index.ts",
-    "postinstall": "prisma generate",
-    "start": "node --import tsx index.ts",
+    "build": "tsup index.ts --format esm --clean",
+    "start": "node dist/index.js",
+    "postinstall": "prisma generate && npm run build",
     "test": "npm run test:all",
     "test:unit": "vitest run tests/validators tests/services tests/controllers",
     "test:integration": "vitest run --config vitest.integration.config.ts",
@@ -62,6 +63,7 @@
     "dotenv-cli": "^11.0.0",
     "prisma": "7.9.1",
     "supertest": "^7.2.2",
+    "tsup": "^8.5.1",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
