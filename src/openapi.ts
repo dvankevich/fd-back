@@ -26,6 +26,7 @@ export function generateOpenApiDocument() {
       description:
         "REST API with auth",
     },
-    servers: [{ url: "http://localhost:3000" }],
+    // servers: [{ url: "http://localhost:3000" }],
+    servers: [{ url: "/" }],
   });
 }
