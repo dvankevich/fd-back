@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 import createHttpError from "http-errors";
 import prisma from "../../prisma/client.ts";
-import type { AuthenticatedRequest } from "../types/auth.ts";
 import type {
   RecipesQuery,
   CreateRecipeBody,
@@ -71,20 +70,28 @@ export const getPopularRecipes = async (_req: Request, res: Response) => {
     orderBy: {
       favorites: { _count: "desc" },
     },
-    take: 4, // типова кількість для "popular"
+    take: 4,
   });
 
   res.status(200).json(recipes);
 };
 
 export const getRecipeById = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = String(req.params.id);
 
   const recipe = await prisma.recipe.findUnique({
     where: { id },
     select: {
-      ...recipeListSelect,
+      id: true,
+      title: true,
+      description: true,
+      thumb: true,
+      preview: true,
+      time: true,
       instructions: true,
+      category: { select: { id: true, name: true } },
+      area: { select: { id: true, name: true } },
+      owner: { select: { id: true, name: true, avatar: true } },
       ingredients: {
         select: {
           measure: true,
@@ -100,7 +107,6 @@ export const getRecipeById = async (req: Request, res: Response) => {
     throw createHttpError(404, "Recipe not found");
   }
 
-  // Нормалізуємо ingredients
   const result = {
     ...recipe,
     ingredients: recipe.ingredients.map((ri) => ({
@@ -116,11 +122,8 @@ export const getRecipeById = async (req: Request, res: Response) => {
 
 // ---------- Private ----------
 
-export const createRecipe = async (
-  req: AuthenticatedRequest,
-  res: Response,
-) => {
-  const userId = req.user.sub;
+export const createRecipe = async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
   const body = req.body as CreateRecipeBody;
 
   logger.debug({ userId, title: body.title }, "Create recipe attempt");
@@ -137,7 +140,6 @@ export const createRecipe = async (
   if (!category) throw createHttpError(400, "Category not found");
   if (!area) throw createHttpError(400, "Area not found");
 
-  // Перевіряємо, що всі інгредієнти існують
   const ingredientIds = body.ingredients.map((i) => i.id);
   const existingIngredients = await prisma.ingredient.findMany({
     where: { id: { in: ingredientIds } },
@@ -175,12 +177,9 @@ export const createRecipe = async (
   res.status(201).json(recipe);
 };
 
-export const deleteRecipe = async (
-  req: AuthenticatedRequest,
-  res: Response,
-) => {
-  const userId = req.user.sub;
-  const { id } = req.params;
+export const deleteRecipe = async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const id = String(req.params.id);
 
   const recipe = await prisma.recipe.findUnique({
     where: { id },
@@ -199,11 +198,8 @@ export const deleteRecipe = async (
   res.status(204).end();
 };
 
-export const getOwnRecipes = async (
-  req: AuthenticatedRequest,
-  res: Response,
-) => {
-  const userId = req.user.sub;
+export const getOwnRecipes = async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
   const page = Number(req.query.page) || 1;
   const limit = Math.min(Number(req.query.limit) || 10, 50);
   const skip = (page - 1) * limit;
@@ -223,11 +219,8 @@ export const getOwnRecipes = async (
   res.status(200).json({ data, total, page, limit });
 };
 
-export const getFavoriteRecipes = async (
-  req: AuthenticatedRequest,
-  res: Response,
-) => {
-  const userId = req.user.sub;
+export const getFavoriteRecipes = async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
   const page = Number(req.query.page) || 1;
   const limit = Math.min(Number(req.query.limit) || 10, 50);
   const skip = (page - 1) * limit;
@@ -251,12 +244,9 @@ export const getFavoriteRecipes = async (
   res.status(200).json({ data, total, page, limit });
 };
 
-export const addFavorite = async (
-  req: AuthenticatedRequest,
-  res: Response,
-) => {
-  const userId = req.user.sub;
-  const { id: recipeId } = req.params;
+export const addFavorite = async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const recipeId = String(req.params.id);
 
   const recipe = await prisma.recipe.findUnique({
     where: { id: recipeId },
@@ -270,7 +260,6 @@ export const addFavorite = async (
       data: { userId, recipeId },
     });
   } catch (err: any) {
-    // унікальний constraint — вже в улюблених
     if (err.code === "P2002") {
       throw createHttpError(409, "Recipe already in favorites");
     }
@@ -280,12 +269,9 @@ export const addFavorite = async (
   res.status(201).json({ message: "Added to favorites" });
 };
 
-export const removeFavorite = async (
-  req: AuthenticatedRequest,
-  res: Response,
-) => {
-  const userId = req.user.sub;
-  const { id: recipeId } = req.params;
+export const removeFavorite = async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const recipeId = String(req.params.id);
 
   const deleted = await prisma.favorite.deleteMany({
     where: { userId, recipeId },
