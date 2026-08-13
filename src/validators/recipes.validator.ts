@@ -181,12 +181,22 @@ registry.registerPath({
   tags: ["Recipes"],
   summary: "Get popular recipes",
   description:
-    "Returns top recipes sorted by the number of users who added them to favorites.",
+    "Returns all recipes sorted by favorites count (descending), with pagination.",
+  request: {
+    query: PaginationQuerySchema,
+  },
   responses: {
     200: {
-      description: "List of popular recipes",
+      description: "Paginated list of popular recipes",
       content: {
-        "application/json": { schema: z.array(PopularRecipeSchema) },
+        "application/json": {
+          schema: z.object({
+            data: z.array(PopularRecipeSchema),
+            total: z.number().int(),
+            page: z.number().int(),
+            limit: z.number().int(),
+          }),
+        },
       },
     },
   },

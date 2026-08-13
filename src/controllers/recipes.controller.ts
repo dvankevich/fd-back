@@ -61,19 +61,28 @@ export const getRecipes = async (req: Request, res: Response) => {
   res.status(200).json({ data, total, page, limit });
 };
 
-export const getPopularRecipes = async (_req: Request, res: Response) => {
-  const recipes = await prisma.recipe.findMany({
-    select: {
-      ...recipeListSelect,
-      _count: { select: { favorites: true } },
-    },
-    orderBy: {
-      favorites: { _count: "desc" },
-    },
-    take: 4,
-  });
+export const getPopularRecipes = async (req: Request, res: Response) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Math.min(Number(req.query.limit) || 10, 50);
+  const skip = (page - 1) * limit;
 
-  res.status(200).json(recipes);
+  const [data, total] = await Promise.all([
+    prisma.recipe.findMany({
+      select: {
+        ...recipeListSelect,
+        _count: { select: { favorites: true } },
+      },
+      orderBy: {
+        favorites: { _count: "desc" },
+      },
+      skip,
+      take: limit,
+    }),
+    prisma.recipe.count(),
+  ]);
+
+  res.setHeader("X-Total-Count", String(total));
+  res.status(200).json({ data, total, page, limit });
 };
 
 export const getRecipeById = async (req: Request, res: Response) => {

@@ -19,8 +19,8 @@ GET {{baseUrl}}/api/recipes?category=Dessert&page=1&limit=10
 ### Search by area + ingredient
 GET {{baseUrl}}/api/recipes?area=British&ingredient=640c2dd963a319ea671e367e
 
-### Popular recipes
-GET {{baseUrl}}/api/recipes/popular
+### Popular recipes (paginated)
+GET {{baseUrl}}/api/recipes/popular?page=1&limit=10
 
 ### Recipe details
 GET {{baseUrl}}/api/recipes/6462a8f74c3d0ddd28898082
