@@ -1,0 +1,67 @@
+@baseUrl = http://localhost:3000
+### Login
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "olena@example.com",
+  "password": "securepass123"
+}
+
+### Збереження токенів після логіну
+@accessToken = {{login.response.body.accessToken}}
+@refreshToken = {{login.response.body.refreshToken}}
+
+### Search recipes
+GET {{baseUrl}}/api/recipes?category=Dessert&page=1&limit=10
+
+### Search by area + ingredient
+GET {{baseUrl}}/api/recipes?area=British&ingredient=640c2dd963a319ea671e367e
+
+### Popular recipes
+GET {{baseUrl}}/api/recipes/popular
+
+### Recipe details
+GET {{baseUrl}}/api/recipes/6462a8f74c3d0ddd28898082
+
+### Create recipe (auth)
+POST {{baseUrl}}/api/recipes
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "My Test Cake",
+  "category": "Dessert",
+  "area": "British",
+  "instructions": "Mix everything and bake for 30 minutes at 180C.",
+  "description": "Simple test recipe",
+  "time": "30",
+  "ingredients": [
+    { "id": "640c2dd963a319ea671e367e", "measure": "200g" }
+  ]
+}
+
+### My recipes
+GET {{baseUrl}}/api/recipes/own
+Authorization: Bearer {{accessToken}}
+
+### Add to favorites
+POST {{baseUrl}}/api/recipes/6462a8f74c3d0ddd28898082/favorite
+Authorization: Bearer {{accessToken}}
+
+### Add to favorites
+POST {{baseUrl}}/api/recipes/6462a8f74c3d0ddd28898015/favorite
+Authorization: Bearer {{accessToken}}
+
+### My favorites
+GET {{baseUrl}}/api/recipes/favorites
+Authorization: Bearer {{accessToken}}
+
+### Remove from favorites
+DELETE {{baseUrl}}/api/recipes/6462a8f74c3d0ddd28898082/favorite
+Authorization: Bearer {{accessToken}}
+
+### Delete own recipe
+DELETE {{baseUrl}}/api/recipes/cmsrr57rt0001bm76l1pjixqw
+Authorization: Bearer {{accessToken}}
