@@ -16,6 +16,7 @@ import usersRouter from "./src/routes/users.routes.ts";
 import categoriesRouter from "./src/routes/categories.routes.ts";
 import areasRouter from "./src/routes/areas.routes.ts";
 import ingredientsRouter from "./src/routes/ingredients.routes.ts";
+import testimonialsRouter from "./src/routes/testimonials.routes.ts";
 
 import { generateOpenApiDocument } from "./src/openapi.ts";
 import prisma from "./prisma/client.ts";
@@ -124,6 +125,7 @@ app.use("/api/users", usersRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/areas", areasRouter);
 app.use("/api/ingredients", ingredientsRouter);
+app.use("/api/testimonials", testimonialsRouter);
 
 // 404 Not Found handler
 app.use((req: Request, res: Response) => {
