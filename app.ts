@@ -66,6 +66,23 @@ app.use(
   }),
 );
 
+// Для docs — послабити CSP
+app.use(["/reference", "/api-docs"], (req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+      "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' https://cdn.jsdelivr.net data:",
+      "connect-src 'self'",
+      "worker-src 'self' blob:",
+    ].join("; "),
+  );
+  next();
+});
+
 app.use(
   pinoHttp({
     logger,
