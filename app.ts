@@ -19,6 +19,7 @@ import ingredientsRouter from "./src/routes/ingredients.routes.ts";
 import testimonialsRouter from "./src/routes/testimonials.routes.ts";
 import recipesRouter from "./src/routes/recipes.routes.ts";
 
+import { apiReference } from "@scalar/express-api-reference";
 import { generateOpenApiDocument } from "./src/openapi.ts";
 import prisma from "./prisma/client.ts";
 
@@ -123,6 +124,16 @@ app.get("/api-docs.json", (_req, res) => {
   res.json(openApiDocument);
 });
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+// Scalar
+app.use(
+  "/reference",
+  apiReference({
+    spec: {
+      content: openApiDocument,
+    },
+    theme: "default", // або "purple", "moon", "saturn", "bluePlanet" тощо
+  }),
+);
 
 app.use("/api/auth", authLimiter, authRouter);
 app.use("/api/users", usersRouter);
