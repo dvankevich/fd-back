@@ -119,6 +119,9 @@ app.get("/readyz", async (_req: Request, res: Response) => {
 });
 
 const openApiDocument = generateOpenApiDocument();
+app.get("/api-docs.json", (_req, res) => {
+  res.json(openApiDocument);
+});
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 app.use("/api/auth", authLimiter, authRouter);
