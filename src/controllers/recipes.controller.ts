@@ -1,10 +1,10 @@
 import type { Request, Response } from "express";
 import createHttpError from "http-errors";
 import prisma from "../../prisma/client.ts";
-import type {
-  RecipesQuery,
-  CreateRecipeBody,
-} from "../validators/recipes.validator.ts";
+import fs from "fs/promises";
+import cloudinary from "../config/cloudinary.ts";
+import type { RecipesQuery } from "../validators/recipes.validator.ts";
+import { CreateRecipeSchema } from "../validators/recipes.validator.ts";
 import logger from "../logger.ts";
 
 const recipeListSelect = {
@@ -132,58 +132,107 @@ export const getRecipeById = async (req: Request, res: Response) => {
 
 export const createRecipe = async (req: Request, res: Response) => {
   const userId = req.user!.sub;
-  const body = req.body as CreateRecipeBody;
+
+  if (!req.file) {
+    throw createHttpError(400, "Recipe image (thumb) is required");
+  }
+
+  // multipart: усі поля — рядки; ingredients — JSON-рядок
+  let ingredients: { id: string; measure: string }[];
+  try {
+    ingredients =
+      typeof req.body.ingredients === "string"
+        ? JSON.parse(req.body.ingredients)
+        : req.body.ingredients;
+  } catch {
+    await fs.unlink(req.file.path).catch(() => {});
+    throw createHttpError(422, "Validation failed");
+  }
+
+  const rawBody = {
+    title: req.body.title,
+    category: req.body.category,
+    area: req.body.area,
+    instructions: req.body.instructions,
+    description: req.body.description || undefined,
+    time: req.body.time || undefined,
+    ingredients,
+  };
+
+  const parsed = CreateRecipeSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    await fs.unlink(req.file.path).catch(() => {});
+    const error = createHttpError(422, "Validation failed");
+    (error as any).details = parsed.error.flatten().fieldErrors;
+    throw error;
+  }
+
+  const body = parsed.data;
 
   logger.debug({ userId, title: body.title }, "Create recipe attempt");
 
-  const [category, area] = await Promise.all([
-    prisma.category.findFirst({
-      where: { name: { equals: body.category, mode: "insensitive" } },
-    }),
-    prisma.area.findFirst({
-      where: { name: { equals: body.area, mode: "insensitive" } },
-    }),
-  ]);
+  try {
+    const [category, area] = await Promise.all([
+      prisma.category.findFirst({
+        where: { name: { equals: body.category, mode: "insensitive" } },
+      }),
+      prisma.area.findFirst({
+        where: { name: { equals: body.area, mode: "insensitive" } },
+      }),
+    ]);
 
-  if (!category) throw createHttpError(400, "Category not found");
-  if (!area) throw createHttpError(400, "Area not found");
+    if (!category) throw createHttpError(400, "Category not found");
+    if (!area) throw createHttpError(400, "Area not found");
 
-  const ingredientIds = body.ingredients.map((i) => i.id);
-  const existingIngredients = await prisma.ingredient.findMany({
-    where: { id: { in: ingredientIds } },
-    select: { id: true },
-  });
+    const ingredientIds = body.ingredients.map((i) => i.id);
+    const existingIngredients = await prisma.ingredient.findMany({
+      where: { id: { in: ingredientIds } },
+      select: { id: true },
+    });
 
-  if (existingIngredients.length !== ingredientIds.length) {
-    throw createHttpError(400, "One or more ingredients not found");
-  }
+    if (existingIngredients.length !== ingredientIds.length) {
+      throw createHttpError(400, "One or more ingredients not found");
+    }
 
-  const recipe = await prisma.recipe.create({
-    data: {
-      title: body.title,
-      instructions: body.instructions,
-      description: body.description,
-      time: body.time,
-      ownerId: userId,
-      categoryId: category.id,
-      areaId: area.id,
-      ingredients: {
-        create: body.ingredients.map((i) => ({
-          ingredientId: i.id,
-          measure: i.measure,
-        })),
+    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+      folder: "foodies/recipes",
+      transformation: [{ width: 800, height: 600, crop: "fill" }],
+    });
+
+    const recipe = await prisma.recipe.create({
+      data: {
+        title: body.title,
+        instructions: body.instructions,
+        description: body.description,
+        time: body.time,
+        thumb: uploadResult.secure_url,
+        preview: uploadResult.secure_url,
+        ownerId: userId,
+        categoryId: category.id,
+        areaId: area.id,
+        ingredients: {
+          create: body.ingredients.map((i) => ({
+            ingredientId: i.id,
+            measure: i.measure,
+          })),
+        },
       },
-    },
-    select: {
-      ...recipeListSelect,
-      instructions: true,
-    },
-  });
+      select: {
+        ...recipeListSelect,
+        instructions: true,
+      },
+    });
 
-  logger.info({ userId, recipeId: recipe.id }, "Recipe created");
+    logger.info({ userId, recipeId: recipe.id }, "Recipe created");
 
-  res.status(201).json(recipe);
+    res.status(201).json(recipe);
+  } catch (err) {
+    throw err;
+  } finally {
+    await fs.unlink(req.file.path).catch(() => {});
+  }
 };
+
 
 export const deleteRecipe = async (req: Request, res: Response) => {
   const userId = req.user!.sub;

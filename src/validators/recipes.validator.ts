@@ -235,15 +235,35 @@ registry.registerPath({
   tags: ["Recipes"],
   summary: "Create own recipe",
   description:
-    "Creates a recipe owned by the authenticated user. " +
+    "Creates a recipe with required thumb image. " +
+    "Content-Type: multipart/form-data. " +
     "category and area are **names** (e.g. \"Dessert\", \"British\"), not ids. " +
-    "Image upload (thumb) is not supported on this endpoint yet — thumb will be null. " +
-    "Content-Type: application/json.",
+    "ingredients must be a JSON string: [{\"id\":\"...\",\"measure\":\"175g\"}].",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
       content: {
-        "application/json": { schema: CreateRecipeSchema },
+        "multipart/form-data": {
+          schema: z.object({
+            title: z.string().openapi({ example: "Battenberg Cake" }),
+            category: z.string().openapi({ example: "Dessert" }),
+            area: z.string().openapi({ example: "British" }),
+            instructions: z.string().openapi({ example: "Heat oven to 180C..." }),
+            description: z.string().optional().openapi({ example: "A classic cake" }),
+            time: z.string().optional().openapi({ example: "60" }),
+            ingredients: z.string().openapi({
+              description: "JSON string array of { id, measure }",
+              example: JSON.stringify([
+                { id: "640c2dd963a319ea671e367e", measure: "175g" },
+              ]),
+            }),
+            thumb: z.any().openapi({
+              type: "string",
+              format: "binary",
+              description: "Recipe image (required, max 5MB, image/*)",
+            }),
+          }),
+        },
       },
     },
   },
@@ -259,22 +279,16 @@ registry.registerPath({
       },
     },
     400: {
-      description: "Category, area or ingredients not found",
-      content: {
-        "application/json": { schema: ErrorSchema },
-      },
+      description: "Missing thumb / category / area / ingredients not found",
+      content: { "application/json": { schema: ErrorSchema } },
     },
     401: {
       description: "Authentication required",
-      content: {
-        "application/json": { schema: ErrorSchema },
-      },
+      content: { "application/json": { schema: ErrorSchema } },
     },
     422: {
       description: "Validation error",
-      content: {
-        "application/json": { schema: ValidationErrorSchema },
-      },
+      content: { "application/json": { schema: ValidationErrorSchema } },
     },
   },
 });

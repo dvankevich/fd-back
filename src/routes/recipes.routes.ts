@@ -10,7 +10,8 @@ import {
   addFavorite,
   removeFavorite,
 } from "../controllers/recipes.controller.ts";
-import { validateBody, validateQuery } from "../middleware/validate.ts";
+import { validateQuery } from "../middleware/validate.ts";
+import { uploadRecipeThumb } from "../middleware/upload.ts";
 import {
   RecipesQuerySchema,
   CreateRecipeSchema,
@@ -38,7 +39,7 @@ router.get(
   getFavoriteRecipes,
 );
 
-router.post("/", authenticate, validateBody(CreateRecipeSchema), createRecipe);
+router.post("/", authenticate, uploadRecipeThumb, createRecipe);
 
 router.post("/:id/favorite", authenticate, addFavorite);
 router.delete("/:id/favorite", authenticate, removeFavorite);
