@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { registry } from "../openapi.ts";
+import { registry } from "../openapi/registry.ts";
 
 export const CategorySchema = registry.register(
   "Category",

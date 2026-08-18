@@ -1,19 +1,16 @@
-import {
-  extendZodWithOpenApi,
-  OpenApiGeneratorV3,
-  OpenAPIRegistry,
-} from "@asteasolutions/zod-to-openapi";
-import { z } from "zod";
+import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
+import { registry } from "./openapi/registry.ts";
 
-extendZodWithOpenApi(z);
+// Side-effect imports — registry уже повністю ініціалізований
+import "./validators/auth.validator.ts";
+import "./validators/users.validator.ts";
+import "./validators/categories.validator.ts";
+import "./validators/areas.validator.ts";
+import "./validators/ingredients.validator.ts";
+import "./validators/testimonials.validator.ts";
+import "./validators/recipes.validator.ts";
 
-export const registry = new OpenAPIRegistry();
-
-registry.registerComponent("securitySchemes", "bearerAuth", {
-  type: "http",
-  scheme: "bearer",
-  bearerFormat: "JWT",
-});
+export { registry };
 
 export function generateOpenApiDocument() {
   const generator = new OpenApiGeneratorV3(registry.definitions);
@@ -24,9 +21,8 @@ export function generateOpenApiDocument() {
       title: "Foodies API",
       version: "1.0.0",
       description:
-        "REST API with auth",
+        "Foodies REST API. Auth: Bearer access token. Refresh token: httpOnly cookie and/or JSON body.",
     },
-    // servers: [{ url: "http://localhost:3000" }],
     servers: [{ url: "/" }],
   });
 }

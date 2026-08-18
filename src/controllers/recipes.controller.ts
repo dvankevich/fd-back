@@ -62,8 +62,7 @@ export const getRecipes = async (req: Request, res: Response) => {
 };
 
 export const getPopularRecipes = async (req: Request, res: Response) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Math.min(Number(req.query.limit) || 10, 50);
+  const { page, limit } = res.locals.query as { page: number; limit: number };
   const skip = (page - 1) * limit;
 
   const [data, total] = await Promise.all([
@@ -209,8 +208,7 @@ export const deleteRecipe = async (req: Request, res: Response) => {
 
 export const getOwnRecipes = async (req: Request, res: Response) => {
   const userId = req.user!.sub;
-  const page = Number(req.query.page) || 1;
-  const limit = Math.min(Number(req.query.limit) || 10, 50);
+  const { page, limit } = res.locals.query as { page: number; limit: number };
   const skip = (page - 1) * limit;
 
   const [data, total] = await Promise.all([
@@ -230,8 +228,7 @@ export const getOwnRecipes = async (req: Request, res: Response) => {
 
 export const getFavoriteRecipes = async (req: Request, res: Response) => {
   const userId = req.user!.sub;
-  const page = Number(req.query.page) || 1;
-  const limit = Math.min(Number(req.query.limit) || 10, 50);
+  const { page, limit } = res.locals.query as { page: number; limit: number };
   const skip = (page - 1) * limit;
 
   const [favorites, total] = await Promise.all([
