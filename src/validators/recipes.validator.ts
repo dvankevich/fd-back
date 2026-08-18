@@ -234,7 +234,11 @@ registry.registerPath({
   path: "/api/recipes",
   tags: ["Recipes"],
   summary: "Create own recipe",
-  description: "Creates a new recipe owned by the authenticated user.",
+  description:
+    "Creates a recipe owned by the authenticated user. " +
+    "category and area are **names** (e.g. \"Dessert\", \"British\"), not ids. " +
+    "Image upload (thumb) is not supported on this endpoint yet — thumb will be null. " +
+    "Content-Type: application/json.",
   security: [{ bearerAuth: [] }],
   request: {
     body: {

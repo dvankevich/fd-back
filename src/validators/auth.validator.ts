@@ -169,7 +169,8 @@ registry.registerPath({
   tags: ["Auth"],
   summary: "Refresh token pair",
   description:
-    "Issues a new pair of tokens. Refresh token can be passed in the body or via httpOnly cookie.",
+    "Issues a new token pair. Pass refreshToken in JSON body **or** via httpOnly cookie `refreshToken`. " +
+    "Both are supported. New refresh token is set as httpOnly cookie and also returned in the body.",
   request: {
     body: {
       content: {
