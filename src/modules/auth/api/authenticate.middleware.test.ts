@@ -1,10 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import express, { type RequestHandler } from "express";
 import request from "supertest";
-import { withUser, createAuthenticate } from "./authenticate.middleware.ts";
+import {
+  withUser,
+  createAuthenticate,
+  createOptionalAuthenticate,
+} from "./authenticate.middleware.ts";
 import { ConflictError, UnauthorizedError } from "../../../core/exceptions/errors.ts";
 import { errorHandler } from "../../../core/http/error-handler.middleware.ts";
 import type { AuthPayload } from "../domain/auth-payload.ts";
+import type { Optional } from "../../../core/types/common.ts";
 
 const userId = "clx1234567890abcdefghij";
 
@@ -46,6 +51,58 @@ describe("createAuthenticate", () => {
 
     expect(res.body).toEqual({ error: "Authentication required" });
     expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe("createOptionalAuthenticate", () => {
+  const authenticatorIdentifying = (payload: Optional<AuthPayload>) => ({
+    identify: vi
+      .fn<(authorization: Optional<string>) => Promise<Optional<AuthPayload>>>()
+      .mockResolvedValue(payload),
+  });
+
+  it("should set req.user when the token is accepted", async () => {
+    const authenticator = authenticatorIdentifying({ sub: userId });
+
+    const res = await request(appWith(createOptionalAuthenticate(authenticator), echoUser))
+      .get("/")
+      .set("Authorization", "Bearer token")
+      .expect(200);
+
+    expect(authenticator.identify).toHaveBeenCalledWith("Bearer token");
+    expect(res.body).toEqual({ user: { sub: userId } });
+  });
+
+  it("should continue as a guest when the token is not accepted", async () => {
+    const authenticator = authenticatorIdentifying(undefined);
+
+    const res = await request(appWith(createOptionalAuthenticate(authenticator), echoUser))
+      .get("/")
+      .set("Authorization", "Bearer broken")
+      .expect(200);
+
+    expect(res.body).toEqual({ user: null });
+  });
+
+  it("should tell caches that the answer depends on the Authorization header", async () => {
+    const res = await request(
+      appWith(createOptionalAuthenticate(authenticatorIdentifying(undefined)), echoUser),
+    )
+      .get("/")
+      .expect(200);
+
+    expect(res.headers.vary).toContain("Authorization");
+  });
+
+  it("should continue as a guest without an Authorization header", async () => {
+    const authenticator = authenticatorIdentifying(undefined);
+
+    const res = await request(appWith(createOptionalAuthenticate(authenticator), echoUser))
+      .get("/")
+      .expect(200);
+
+    expect(authenticator.identify).toHaveBeenCalledWith(undefined);
+    expect(res.body).toEqual({ user: null });
   });
 });
 
