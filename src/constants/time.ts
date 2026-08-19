@@ -1,2 +1,6 @@
-export const ACCESS_TOKEN_LIFETIME = 15 * 60 * 1000;
-export const REFRESH_TOKEN_LIFETIME = 7 * 24 * 60 * 60 * 1000;
+export const TIME_MS = {
+  second: 1_000,
+  minute: 60_000,
+  hour: 3_600_000,
+  day: 86_400_000,
+} as const;

@@ -1,8 +1,7 @@
 import { env } from "./src/config/env.ts";
 import express from "express";
 import type { Request, Response } from "express";
-import rateLimit from "express-rate-limit";
-import { AUTH_RATE_LIMIT } from "./src/constants/rateLimit.ts";
+import { TIME_MS } from "./src/constants/time.ts";
 import cors from "cors";
 import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
@@ -25,21 +24,14 @@ import prisma from "./prisma/client.ts";
 
 const app = express();
 
+if (env.TRUST_PROXY_HOPS > 0) {
+  app.set("trust proxy", env.TRUST_PROXY_HOPS);
+}
+
 const allowedOrigins =
   env.ALLOWED_ORIGINS?.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean) || [];
-
-const authLimiter = rateLimit({
-  windowMs: AUTH_RATE_LIMIT.windowMs,
-  max: AUTH_RATE_LIMIT.max,
-  message: {
-    error: "Too many requests, please try again later",
-  },
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  skip: () => env.NODE_ENV === "test",
-});
 
 app.use(
   cors({
@@ -55,16 +47,11 @@ app.use(
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["X-Total-Count"],
-    maxAge: 86400,
+    maxAge: TIME_MS.day / TIME_MS.second,
   }),
 );
 
-app.use(
-  helmet({
-    contentSecurityPolicy:
-      env.NODE_ENV === "production" ? undefined : false,
-  }),
-);
+app.use(helmet());
 
 // Для docs — послабити CSP
 app.use(["/reference", "/api-docs"], (req, res, next) => {
@@ -152,7 +139,7 @@ app.use(
   }),
 );
 
-app.use("/api/auth", authLimiter, authRouter);
+app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/areas", areasRouter);

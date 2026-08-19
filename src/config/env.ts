@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TIME_MS } from "../constants/time.ts";
 
 const envSchema = z.object({
   // --- Runtime ---
@@ -24,6 +25,10 @@ const envSchema = z.object({
 
   // --- CORS ---
   ALLOWED_ORIGINS: z.string().optional(), // "http://localhost:5173,https://example.com"
+
+  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * TIME_MS.minute),
+  AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
 
   // --- Cloudinary (поки опціонально) ---
   CLOUDINARY_CLOUD_NAME: z.string().optional(),

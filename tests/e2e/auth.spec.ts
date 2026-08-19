@@ -1,67 +1,66 @@
 import { test, expect } from "@playwright/test";
-import {
-  cleanDatabase,
-  register,
-  registerAndGetToken,
-  userA,
-} from "./helpers.ts";
+import { authHeaders, cleanDatabase, owner, register, registerSession } from "./helpers.ts";
 
-test.describe("Auth E2E", () => {
+test.describe("Auth API (e2e)", () => {
   test.beforeEach(async () => {
     await cleanDatabase();
   });
 
-  test("register → me → logout flow", async ({ request }) => {
-    // Register
-    const registerRes = await register(request);
-    expect(registerRes.status()).toBe(201);
+  test("register → me → logout → refresh with the revoked token fails", async ({ request }) => {
+    const session = await registerSession(request);
+    expect(session.user.email).toBe(owner.email);
+    expect(session.user.name).toBe(owner.name);
+    expect(session.user.avatar).toBeNull();
 
-    const registerBody = await registerRes.json();
-    expect(registerBody.accessToken).toBeTruthy();
-    expect(registerBody.user.email).toBe(userA.email);
-    expect(registerBody.user.name).toBe(userA.name);
-    expect(registerBody.user.avatar).toBeNull();
-
-    // Me (/api/users/me)
-    const meRes = await request.get("/api/users/me", {
-      headers: { Authorization: `Bearer ${registerBody.accessToken}` },
-    });
+    const meRes = await request.get("/api/users/me", { headers: authHeaders(session.accessToken) });
     expect(meRes.status()).toBe(200);
+    expect(await meRes.json()).toMatchObject({ email: owner.email, name: owner.name });
 
-    const me = await meRes.json();
-    expect(me.email).toBe(userA.email);
-    expect(me.name).toBe(userA.name);
-
-    // Logout
     const logoutRes = await request.post("/api/auth/logout", {
-      data: { refreshToken: registerBody.refreshToken },
+      headers: authHeaders(session.accessToken),
+      data: { refreshToken: session.refreshToken },
     });
     expect(logoutRes.status()).toBe(204);
+
+    const refreshRes = await request.post("/api/auth/refresh", {
+      data: { refreshToken: session.refreshToken },
+    });
+    expect(refreshRes.status()).toBe(401);
+  });
+
+  test("logout without access token returns 401", async ({ request }) => {
+    const res = await request.post("/api/auth/logout");
+    expect(res.status()).toBe(401);
+    expect(await res.json()).toEqual({ error: "Authentication required" });
+  });
+
+  test("register is case-insensitive on email", async ({ request }) => {
+    await registerSession(request);
+
+    const res = await register(request, { ...owner, email: owner.email.toUpperCase() });
+    expect(res.status()).toBe(409);
+    expect(await res.json()).toEqual({ error: "Email already taken" });
   });
 
   test("login with wrong password returns 401", async ({ request }) => {
-    await register(request);
+    await registerSession(request);
 
     const res = await request.post("/api/auth/login", {
-      data: { email: userA.email, password: "wrongpassword" },
+      data: { email: owner.email, password: "wrongpassword" },
     });
-
     expect(res.status()).toBe(401);
     expect(await res.json()).toEqual({ error: "Invalid credentials" });
   });
 
-  test("refresh rotates refresh token", async ({ request }) => {
-    const { refreshToken } = await registerAndGetToken(request);
+  test("refresh rotates the refresh token", async ({ request }) => {
+    const { refreshToken } = await registerSession(request);
 
-    const res = await request.post("/api/auth/refresh", {
-      data: { refreshToken },
-    });
-
+    const res = await request.post("/api/auth/refresh", { data: { refreshToken } });
     expect(res.status()).toBe(200);
 
-    const body = await res.json();
-    expect(body.accessToken).toBeTruthy();
-    expect(body.refreshToken).toBeTruthy();
-    expect(body.refreshToken).not.toBe(refreshToken);
+    const rotated = await res.json();
+    expect(rotated.accessToken).toBeTruthy();
+    expect(rotated.refreshToken).toBeTruthy();
+    expect(rotated.refreshToken).not.toBe(refreshToken);
   });
 });

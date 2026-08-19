@@ -37,11 +37,16 @@ Content-Type: application/json
 @accessToken = {{refresh.response.body.accessToken}}
 @refreshToken = {{refresh.response.body.refreshToken}}
 
-### Logout
+### Logout (this session)
 POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
   "refreshToken": "{{refreshToken}}"
 }
+
+### Logout (all sessions)
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{accessToken}}
 

@@ -8,7 +8,7 @@
     "start": "node dist/index.js",
     "postinstall": "prisma generate && npm run build",
     "test": "npm run test:all",
-    "test:unit": "vitest run tests/validators tests/services tests/controllers",
+    "test:unit": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:all": "npm run test:unit && npm run test:integration",
     "test:integration:watch": "vitest --config vitest.integration.config.ts",
