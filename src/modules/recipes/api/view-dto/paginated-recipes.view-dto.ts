@@ -16,7 +16,10 @@ export const PaginatedRecipesSchema = registry.register(
   }),
 );
 
-export const PaginatedPopularRecipesSchema = z.object({
-  data: z.array(PopularRecipeSchema),
-  ...pageFields,
-});
+export const PaginatedPopularRecipesSchema = registry.register(
+  "PaginatedPopularRecipes",
+  z.object({
+    data: z.array(PopularRecipeSchema),
+    ...pageFields,
+  }),
+);

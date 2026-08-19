@@ -1,45 +1,82 @@
 import { z } from "zod";
 import { registry } from "../../../core/openapi/registry.ts";
-import { ErrorSchema, ValidationErrorSchema, jsonResponse } from "../../../core/openapi/responses.ts";
+import {
+  errorExamples,
+  errorResponse,
+  jsonResponse,
+  validationErrorResponse,
+} from "../../../core/openapi/responses.ts";
 import { RATE_LIMIT_MESSAGE } from "../../../core/http/rate-limit.middleware.ts";
-import { COOKIE, COOKIE_DESCRIPTION, EXAMPLE } from "./auth.examples.ts";
+import { AUTH_MESSAGE } from "../domain/auth.messages.ts";
+import { SESSION_ERROR } from "../domain/session-ended.error.ts";
+import { unauthorizedResponse } from "./auth.responses.ts";
+import {
+  COOKIE,
+  COOKIE_DESCRIPTION,
+  EXAMPLE,
+  RESPONSE_EXAMPLE,
+  VALIDATION_DETAILS_EXAMPLE,
+} from "./auth.examples.ts";
 import { LoginSchema } from "./input-dto/login.input-dto.ts";
 import { RefreshTokenBodySchema } from "./input-dto/refresh-token.input-dto.ts";
 import { RegisterSchema } from "./input-dto/register.input-dto.ts";
 import { AuthResponseSchema, TokensSchema } from "./view-dto/tokens.view-dto.ts";
 
-const RateLimitHeaders = z.object({
-  RateLimit: z.string().openapi({ description: "draft-8 rate limit state", example: '"auth";r=0;t=900' }),
-  "RateLimit-Policy": z.string().openapi({ description: "draft-8 rate limit policy", example: '"auth";q=10;w=900' }),
-  "Retry-After": z.string().openapi({ description: "Seconds until the window resets", example: "900" }),
+const rateLimitHeaders = (state: string) => ({
+  RateLimit: z.string().openapi({ description: "draft-8 rate limit state", example: state }),
+  "RateLimit-Policy": z
+    .string()
+    .openapi({ description: "draft-8 rate limit policy", example: EXAMPLE.rateLimitPolicy }),
+});
+
+const RETRY_AFTER_HEADER = {
+  "Retry-After": z
+    .string()
+    .openapi({ description: "Seconds until the window resets", example: EXAMPLE.retryAfter }),
+};
+
+const REFRESH_COOKIE_HEADER = {
+  "Set-Cookie": z.string().openapi({ description: COOKIE_DESCRIPTION.set, example: EXAMPLE.setCookie }),
+};
+
+const CLEARED_COOKIE_HEADER = {
+  "Set-Cookie": z
+    .string()
+    .openapi({ description: COOKIE_DESCRIPTION.cleared, example: EXAMPLE.clearedCookie }),
+};
+
+const MAYBE_CLEARED_COOKIE_HEADER = {
+  "Set-Cookie": z.string().optional().openapi({
+    description: `${COOKIE_DESCRIPTION.cleared} when the session is gone; absent when only the request was rejected`,
+    example: EXAMPLE.clearedCookie,
+  }),
+};
+
+const rateLimited = <T extends object>(response: T) => ({
+  ...response,
+  headers: z.object(rateLimitHeaders(EXAMPLE.rateLimit)),
 });
 
 const AUTH_RESPONSE = {
-  validation: jsonResponse("Validation error", ValidationErrorSchema),
+  malformedBody: validationErrorResponse({
+    description: "Body is not valid JSON",
+    details: VALIDATION_DETAILS_EXAMPLE.malformedJson,
+  }),
+  refreshTokenValidation: validationErrorResponse({
+    description: "Validation error",
+    details: VALIDATION_DETAILS_EXAMPLE.refreshToken,
+  }),
   tooManyRequests: {
-    description: "Too many requests from this IP in the current window",
-    content: { "application/json": { schema: ErrorSchema, example: RATE_LIMIT_MESSAGE } },
-    headers: RateLimitHeaders,
+    ...errorResponse({
+      description: "Too many requests from this IP in the current window",
+      error: RATE_LIMIT_MESSAGE.error,
+    }),
+    headers: z.object({ ...rateLimitHeaders(EXAMPLE.rateLimitExhausted), ...RETRY_AFTER_HEADER }),
   },
 } as const;
 
 const RefreshCookieSchema = z.object({
   [COOKIE.name]: z.string().min(1).optional().openapi({ description: COOKIE_DESCRIPTION.request }),
-});
-
-const RefreshCookieHeaders = z.object({
-  "Set-Cookie": z.string().openapi({ description: COOKIE_DESCRIPTION.set, example: EXAMPLE.setCookie }),
-});
-
-const ClearedCookieHeaders = z.object({
-  "Set-Cookie": z.string().openapi({ description: COOKIE_DESCRIPTION.cleared, example: EXAMPLE.clearedCookie }),
-});
-
-const MaybeClearedCookieHeaders = z.object({
-  "Set-Cookie": z.string().optional().openapi({
-    description: `${COOKIE_DESCRIPTION.cleared} when the session is gone; absent when only the request was rejected`,
-    example: EXAMPLE.clearedCookie,
-  }),
 });
 
 registry.registerPath({
@@ -57,9 +94,24 @@ registry.registerPath({
     },
   },
   responses: {
-    201: { ...jsonResponse("User registered successfully", AuthResponseSchema), headers: RefreshCookieHeaders },
-    409: jsonResponse("Email already taken", ErrorSchema),
-    422: AUTH_RESPONSE.validation,
+    201: {
+      ...jsonResponse({
+        description: "User registered successfully",
+        schema: AuthResponseSchema,
+        example: RESPONSE_EXAMPLE.auth,
+      }),
+      headers: z.object({ ...REFRESH_COOKIE_HEADER, ...rateLimitHeaders(EXAMPLE.rateLimit) }),
+    },
+    400: rateLimited(AUTH_RESPONSE.malformedBody),
+    409: rateLimited(
+      errorResponse({ description: "Email already taken", error: AUTH_MESSAGE.emailTaken }),
+    ),
+    422: rateLimited(
+      validationErrorResponse({
+        description: "Validation error",
+        details: VALIDATION_DETAILS_EXAMPLE.register,
+      }),
+    ),
     429: AUTH_RESPONSE.tooManyRequests,
   },
 });
@@ -79,9 +131,27 @@ registry.registerPath({
     },
   },
   responses: {
-    200: { ...jsonResponse("Login successful", AuthResponseSchema), headers: RefreshCookieHeaders },
-    401: jsonResponse("Invalid credentials", ErrorSchema),
-    422: AUTH_RESPONSE.validation,
+    200: {
+      ...jsonResponse({
+        description: "Login successful",
+        schema: AuthResponseSchema,
+        example: RESPONSE_EXAMPLE.auth,
+      }),
+      headers: z.object({ ...REFRESH_COOKIE_HEADER, ...rateLimitHeaders(EXAMPLE.rateLimit) }),
+    },
+    400: rateLimited(AUTH_RESPONSE.malformedBody),
+    401: rateLimited(
+      errorResponse({
+        description: "Invalid credentials",
+        error: AUTH_MESSAGE.invalidCredentials,
+      }),
+    ),
+    422: rateLimited(
+      validationErrorResponse({
+        description: "Validation error",
+        details: VALIDATION_DETAILS_EXAMPLE.login,
+      }),
+    ),
     429: AUTH_RESPONSE.tooManyRequests,
   },
 });
@@ -106,12 +176,28 @@ registry.registerPath({
     },
   },
   responses: {
-    200: { ...jsonResponse("Tokens refreshed successfully", TokensSchema), headers: RefreshCookieHeaders },
-    401: {
-      ...jsonResponse("Refresh token missing, invalid, expired, already used, or reuse detected", ErrorSchema),
-      headers: MaybeClearedCookieHeaders,
+    200: {
+      ...jsonResponse({
+        description: "Tokens refreshed successfully",
+        schema: TokensSchema,
+        example: RESPONSE_EXAMPLE.tokens,
+      }),
+      headers: z.object(REFRESH_COOKIE_HEADER),
     },
-    422: AUTH_RESPONSE.validation,
+    400: AUTH_RESPONSE.malformedBody,
+    401: {
+      ...errorExamples({
+        description: "Refresh token missing, invalid, expired, already used, or reuse detected",
+        errors: {
+          missing: AUTH_MESSAGE.refreshTokenRequired,
+          invalid: SESSION_ERROR.invalid,
+          expired: SESSION_ERROR.expired,
+          reuse: SESSION_ERROR.reuse,
+        },
+      }),
+      headers: z.object(MAYBE_CLEARED_COOKIE_HEADER),
+    },
+    422: AUTH_RESPONSE.refreshTokenValidation,
   },
 });
 
@@ -134,8 +220,9 @@ registry.registerPath({
     },
   },
   responses: {
-    204: { description: "Logged out successfully", headers: ClearedCookieHeaders },
-    401: jsonResponse("Missing or invalid access token", ErrorSchema),
-    422: AUTH_RESPONSE.validation,
+    204: { description: "Logged out successfully", headers: z.object(CLEARED_COOKIE_HEADER) },
+    400: AUTH_RESPONSE.malformedBody,
+    401: unauthorizedResponse,
+    422: AUTH_RESPONSE.refreshTokenValidation,
   },
 });

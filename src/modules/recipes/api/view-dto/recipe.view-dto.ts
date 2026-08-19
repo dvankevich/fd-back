@@ -15,11 +15,11 @@ const recipeSummaryFields = {
   preview: z.string().nullable().openapi({ example: null }),
   time: z.string().nullable().openapi({ example: "60" }),
   category: z.object({
-    id: z.string().openapi({ example: "6462a6cd4c3d0ddd28897f8a" }),
+    id: z.string().openapi({ example: "6462a6cd4c3d0ddd28897f8f" }),
     name: z.string().openapi({ example: "Dessert" }),
   }),
   area: z.object({
-    id: z.string().openapi({ example: "6462a6f04c3d0ddd28897f9c" }),
+    id: z.string().openapi({ example: "6462a6f04c3d0ddd28897fa1" }),
     name: z.string().openapi({ example: "British" }),
   }),
   owner: z.object({
@@ -46,10 +46,13 @@ export const RecipeListItemSchema = registry.register(
   }) satisfies z.ZodType<RecipeListItemView>,
 );
 
-export const CreatedRecipeSchema = z.object({
-  ...recipeSummaryFields,
-  instructions: z.string().openapi({ example: "Heat oven to 180C..." }),
-}) satisfies z.ZodType<CreatedRecipeView>;
+export const CreatedRecipeSchema = registry.register(
+  "CreatedRecipe",
+  z.object({
+    ...recipeSummaryFields,
+    instructions: z.string().openapi({ example: "Heat oven to 180C..." }),
+  }) satisfies z.ZodType<CreatedRecipeView>,
+);
 
 export const RecipeDetailSchema = registry.register(
   "RecipeDetail",
