@@ -8,7 +8,7 @@ type AppErrorOptions = { status: HttpStatus; message: string; details?: ErrorDet
 export class AppError extends Error {
   readonly status: HttpStatus;
   readonly statusCode: HttpStatus;
-  readonly expose = true;
+  readonly expose: boolean;
   readonly details: Optional<ErrorDetails>;
 
   constructor({ status, message, details }: AppErrorOptions) {
@@ -16,6 +16,7 @@ export class AppError extends Error {
     this.name = new.target.name;
     this.status = status;
     this.statusCode = status;
+    this.expose = status < HTTP_STATUS.internalServerError;
     this.details = details;
   }
 }
@@ -47,6 +48,12 @@ export class NotFoundError extends AppError {
 export class ConflictError extends AppError {
   constructor(message: string) {
     super({ status: HTTP_STATUS.conflict, message });
+  }
+}
+
+export class InternalServerError extends AppError {
+  constructor(message: string) {
+    super({ status: HTTP_STATUS.internalServerError, message });
   }
 }
 

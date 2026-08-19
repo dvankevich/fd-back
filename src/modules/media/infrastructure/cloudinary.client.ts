@@ -1,4 +1,4 @@
-import { env } from "./env.ts";
+import { env } from "../../../config/env.ts";
 import { v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({

@@ -11,7 +11,7 @@ import {
   removeFavorite,
 } from "../controllers/recipes.controller.ts";
 import { validateQuery } from "../core/http/validate.middleware.ts";
-import { uploadRecipeThumb } from "../core/http/upload.middleware.ts";
+import { createSingleFileUpload } from "../core/http/upload.middleware.ts";
 import {
   RecipesQuerySchema,
   CreateRecipeSchema,
@@ -19,6 +19,8 @@ import {
 } from "../validators/recipes.validator.ts";
 import { authModule } from "../modules/auth/index.ts";
 import "../validators/recipes.validator.ts";
+
+const uploadRecipeThumb = createSingleFileUpload("thumb");
 
 const router = Router();
 

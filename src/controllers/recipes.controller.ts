@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import createHttpError from "http-errors";
 import prisma from "../core/database/prisma.client.ts";
 import fs from "fs/promises";
-import cloudinary from "../config/cloudinary.ts";
+import cloudinary from "../modules/media/infrastructure/cloudinary.client.ts";
 import type { RecipesQuery } from "../validators/recipes.validator.ts";
 import { CreateRecipeSchema } from "../validators/recipes.validator.ts";
 import logger from "../core/logger.ts";

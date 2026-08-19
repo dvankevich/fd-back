@@ -1,23 +1,30 @@
-import type { Request, Response, NextFunction } from "express";
-import createHttpError from "http-errors";
+import type { Request, Response, NextFunction, RequestHandler } from "express";
 import multer from "multer";
 import path from "path";
-// import { fileURLToPath } from "url";
 import fs from "fs";
+import { BadRequestError } from "../exceptions/errors.ts";
 
-// const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// const uploadDir = path.join(__dirname, "../../uploads");
 const uploadDir = path.join(process.cwd(), "uploads");
 
-// Створюємо папку uploads, якщо її немає
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+const BYTES_PER_MEGABYTE = 1024 * 1024;
+
+export const UPLOAD_LIMITS = { fileSizeMb: 5 } as const;
+
+const UPLOAD_ERROR = {
+  tooLarge: `File too large (max ${UPLOAD_LIMITS.fileSizeMb}MB)`,
+  notAnImage: "Only image files are allowed",
+} as const;
+
+const RANDOM_SUFFIX_RANGE = 1e9;
+
 const storage = multer.diskStorage({
   destination: uploadDir,
   filename: (_req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * RANDOM_SUFFIX_RANGE)}`;
     cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
@@ -25,57 +32,28 @@ const storage = multer.diskStorage({
 export const upload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5 MB
+    fileSize: UPLOAD_LIMITS.fileSizeMb * BYTES_PER_MEGABYTE,
   },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
-      cb(new Error("Only image files are allowed"));
+      cb(new Error(UPLOAD_ERROR.notAnImage));
     }
   },
 });
 
-export const uploadAvatar = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  upload.single("avatar")(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      // Ліміт розміру, неочікуване поле тощо
-      if (err.code === "LIMIT_FILE_SIZE") {
-        return next(createHttpError(400, "File too large (max 5MB)"));
-      }
-      return next(createHttpError(400, err.message));
-    }
-
-    if (err) {
-      // fileFilter (не зображення)
-      return next(createHttpError(400, err.message));
-    }
-
-    next();
-  });
+const toUploadError = (err: unknown): BadRequestError => {
+  if (err instanceof multer.MulterError) {
+    return new BadRequestError(err.code === "LIMIT_FILE_SIZE" ? UPLOAD_ERROR.tooLarge : err.message);
+  }
+  return new BadRequestError(err instanceof Error ? err.message : UPLOAD_ERROR.notAnImage);
 };
 
-export const uploadRecipeThumb = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  upload.single("thumb")(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      if (err.code === "LIMIT_FILE_SIZE") {
-        return next(createHttpError(400, "File too large (max 5MB)"));
-      }
-      return next(createHttpError(400, err.message));
-    }
-
-    if (err) {
-      return next(createHttpError(400, err.message));
-    }
-
-    next();
-  });
-};
+export const createSingleFileUpload =
+  (field: string): RequestHandler =>
+  (req: Request, res: Response, next: NextFunction) => {
+    upload.single(field)(req, res, (err) => {
+      next(err ? toUploadError(err) : undefined);
+    });
+  };

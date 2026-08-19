@@ -2,7 +2,6 @@ import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
 import { registry } from "./registry.ts";
 
 // Side-effect imports — registry уже повністю ініціалізований
-import "../../validators/users.validator.ts";
 import "../../validators/recipes.validator.ts";
 
 export { registry };

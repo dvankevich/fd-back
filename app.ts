@@ -11,7 +11,7 @@ import { errorHandler } from "./src/core/http/error-handler.middleware.ts";
 import logger from "./src/core/logger.ts";
 
 import { authModule } from "./src/modules/auth/index.ts";
-import usersRouter from "./src/routes/users.routes.ts";
+import { usersModule } from "./src/modules/users/index.ts";
 import { categoriesModule } from "./src/modules/categories/index.ts";
 import { areasModule } from "./src/modules/areas/index.ts";
 import { ingredientsModule } from "./src/modules/ingredients/index.ts";
@@ -140,7 +140,7 @@ app.use(
 );
 
 app.use(authModule.path, authModule.router);
-app.use("/api/users", usersRouter);
+app.use(usersModule.path, usersModule.router);
 app.use(categoriesModule.path, categoriesModule.router);
 app.use(areasModule.path, areasModule.router);
 app.use(ingredientsModule.path, ingredientsModule.router);

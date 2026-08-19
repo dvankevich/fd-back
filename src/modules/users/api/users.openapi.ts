@@ -1,85 +1,10 @@
 import { z } from "zod";
-import { registry } from "../core/openapi/registry.ts";
-import { ErrorSchema } from "../core/openapi/responses.ts";
-
-// ====================== Params ======================
-
-export const UserIdParamSchema = registry.register(
-  "UserIdParam",
-  z.object({
-    id: z.string().min(1).openapi({ example: "64c8d958249fae54bae90bb9" }),
-  }),
-);
-
-// ====================== Response schemas ======================
-
-export const CurrentUserSchema = registry.register(
-  "CurrentUser",
-  z.object({
-    id: z.string().openapi({ example: "64c8d958249fae54bae90bb9" }),
-    name: z.string().openapi({ example: "Olena Kravets" }),
-    email: z.email().openapi({ example: "olena@example.com" }),
-    avatar: z.string().nullable().openapi({
-      example: "https://res.cloudinary.com/.../avatar.jpg",
-    }),
-    createdRecipesCount: z.number().int().nonnegative().openapi({ example: 12 }),
-    favoritesCount: z.number().int().nonnegative().openapi({ example: 5 }),
-    followersCount: z.number().int().nonnegative().openapi({ example: 34 }),
-    followingCount: z.number().int().nonnegative().openapi({ example: 18 }),
-  }),
-);
-
-export const PublicUserSchema = registry.register(
-  "PublicUser",
-  z.object({
-    id: z.string().openapi({ example: "64c8d958249fae54bae90bb9" }),
-    name: z.string().openapi({ example: "Olena Kravets" }),
-    email: z.email().openapi({ example: "olena@example.com" }),
-    avatar: z.string().nullable().openapi({
-      example: "https://res.cloudinary.com/.../avatar.jpg",
-    }),
-    createdRecipesCount: z.number().int().nonnegative().openapi({ example: 12 }),
-    followersCount: z.number().int().nonnegative().openapi({ example: 34 }),
-  }),
-);
-
-export const UserListItemSchema = registry.register(
-  "UserListItem",
-  z.object({
-    id: z.string().openapi({ example: "64c8d958249fae54bae90bb9" }),
-    name: z.string().openapi({ example: "Olena Kravets" }),
-    avatar: z.string().nullable().openapi({ example: null }),
-  }),
-);
-
-export const UsersListSchema = registry.register(
-  "UsersList",
-  z.object({
-    users: z.array(UserListItemSchema),
-  }),
-);
-
-export const FollowMessageSchema = registry.register(
-  "FollowMessage",
-  z.object({
-    message: z.string().openapi({ example: "Successfully followed" }),
-  }),
-);
-
-export const AvatarResponseSchema = registry.register(
-  "AvatarResponse",
-  z.object({
-    avatar: z.string().openapi({
-      example: "https://res.cloudinary.com/.../avatar.jpg",
-    }),
-  }),
-);
-
-// ====================== Types ======================
-
-export type UserIdParam = z.infer<typeof UserIdParamSchema>;
-
-// ====================== Paths ======================
+import { registry } from "../../../core/openapi/registry.ts";
+import { ErrorSchema } from "../../../core/openapi/responses.ts";
+import { UserIdParamSchema } from "./input-dto/user-id.param.input-dto.ts";
+import { AvatarResponseSchema } from "./view-dto/avatar.view-dto.ts";
+import { FollowMessageSchema } from "./view-dto/follow-message.view-dto.ts";
+import { CurrentUserSchema, PublicUserSchema, UsersListSchema } from "./view-dto/user.view-dto.ts";
 
 registry.registerPath({
   method: "get",
