@@ -199,6 +199,110 @@ describe("Recipes API (integration)", () => {
     });
   });
 
+  describe("isFavorite", () => {
+    const favorited = seed.recipeIds[0];
+    const notFavorited = seed.recipeIds[1];
+
+    beforeAll(async () => {
+      await prisma.favorite.create({
+        data: { userId: ownerSession.user.id, recipeId: favorited },
+      });
+    });
+
+    afterAll(async () => {
+      await prisma.favorite.deleteMany({ where: { recipe: testRecipes } });
+    });
+
+    const search = () => request(app).get("/api/recipes").query({ category: seed.category.name });
+
+    const marks = (body: { data: { id: string; isFavorite: boolean }[] }) =>
+      Object.fromEntries(body.data.map(({ id, isFavorite }) => [id, isFavorite]));
+
+    it("should mark the recipes of the caller in the list", async () => {
+      const res = await search().set(authorized(ownerSession)).expect(200);
+
+      expect(marks(res.body)).toEqual({ [favorited]: true, [notFavorited]: false });
+    });
+
+    it("should answer false to a guest", async () => {
+      const res = await search().expect(200);
+
+      expect(marks(res.body)).toEqual({ [favorited]: false, [notFavorited]: false });
+    });
+
+    it("should answer false to a broken token instead of 401", async () => {
+      const res = await search().set({ Authorization: "Bearer not-a-jwt" }).expect(200);
+
+      expect(marks(res.body)).toEqual({ [favorited]: false, [notFavorited]: false });
+    });
+
+    it("should answer false to a token with a foreign signature instead of 401", async () => {
+      const [header, payload] = ownerSession.accessToken.split(".");
+      const forged = `${header}.${payload}.${"a".repeat(43)}`;
+
+      const res = await search().set({ Authorization: `Bearer ${forged}` }).expect(200);
+
+      expect(marks(res.body)).toEqual({ [favorited]: false, [notFavorited]: false });
+    });
+
+    it("should mark popular recipes for the caller", async () => {
+      const res = await request(app)
+        .get("/api/recipes/popular")
+        .set(authorized(ownerSession))
+        .expect(200);
+
+      expect(marks(res.body)).toMatchObject({ [favorited]: true });
+    });
+
+    it("should leave popular recipes unmarked for a guest", async () => {
+      const res = await request(app).get("/api/recipes/popular").expect(200);
+
+      expect(marks(res.body)).toMatchObject({ [favorited]: false });
+    });
+
+    it("should mark the recipe details for the caller", async () => {
+      const res = await request(app)
+        .get(`/api/recipes/${favorited}`)
+        .set(authorized(ownerSession))
+        .expect(200);
+
+      expect(res.body).toMatchObject({ id: favorited, isFavorite: true });
+    });
+
+    it("should keep the details of the same recipe unmarked for another user", async () => {
+      const res = await request(app)
+        .get(`/api/recipes/${favorited}`)
+        .set(authorized(strangerSession))
+        .expect(200);
+
+      expect(res.body).toMatchObject({ id: favorited, isFavorite: false });
+    });
+
+    it("should keep the details unmarked for a guest", async () => {
+      const res = await request(app).get(`/api/recipes/${favorited}`).expect(200);
+
+      expect(res.body).toMatchObject({ id: favorited, isFavorite: false });
+    });
+
+    it("should mark own recipes", async () => {
+      const res = await request(app)
+        .get("/api/recipes/own")
+        .set(authorized(ownerSession))
+        .expect(200);
+
+      expect(marks(res.body)).toEqual({ [favorited]: true });
+    });
+
+    it("should mark every recipe of the favorites list", async () => {
+      const res = await request(app)
+        .get("/api/recipes/favorites")
+        .set(authorized(ownerSession))
+        .expect(200);
+
+      expect(marks(res.body)).toEqual({ [favorited]: true });
+    });
+  });
+
   describe("POST /api/recipes", () => {
     it("should refuse a guest", async () => {
       await request(app).post("/api/recipes").expect(401);

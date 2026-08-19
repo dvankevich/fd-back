@@ -25,6 +25,18 @@ GET {{baseUrl}}/api/recipes/popular?page=1&limit=4
 ### Recipe details
 GET {{baseUrl}}/api/recipes/6462a8f74c3d0ddd28898082
 
+### Search recipes with the caller favorites marked
+GET {{baseUrl}}/api/recipes?category=Dessert&page=1&limit=10
+Authorization: Bearer {{accessToken}}
+
+### Popular recipes with the caller favorites marked
+GET {{baseUrl}}/api/recipes/popular?page=1&limit=4
+Authorization: Bearer {{accessToken}}
+
+### Recipe details with the caller favorites marked
+GET {{baseUrl}}/api/recipes/6462a8f74c3d0ddd28898082
+Authorization: Bearer {{accessToken}}
+
 ### Create recipe (multipart + thumb)
 POST {{baseUrl}}/api/recipes
 Authorization: Bearer {{accessToken}}

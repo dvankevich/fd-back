@@ -4,17 +4,20 @@ import type { Nullable } from "../../../core/types/common.ts";
 import type { ImageStorage, UploadImageInput, UploadedImage } from "../../media/index.ts";
 import type {
   NewRecipe,
+  PopularRecipeRow,
   RecipeDetailRow,
+  RecipeListRow,
   RecipesRepository,
 } from "../domain/recipes.port.ts";
-import type { CreatedRecipeView, PopularRecipeView, RecipeListItemView } from "../domain/recipe.view.ts";
+import type { CreatedRecipeView } from "../domain/recipe.view.ts";
+import { FavoriteMarker } from "./favorite-marker.ts";
 import { RECIPE_IMAGE, RecipesService } from "./recipes.service.ts";
 
 const ownerId = "user-1";
 const recipeId = "recipe-1";
 const uploadedUrl = "https://res.cloudinary.com/demo/recipe.jpg";
 
-const listItem: RecipeListItemView = {
+const listRow: RecipeListRow = {
   id: recipeId,
   title: "Battenberg",
   description: null,
@@ -27,29 +30,42 @@ const listItem: RecipeListItemView = {
 };
 
 const detailRow: RecipeDetailRow = {
-  ...listItem,
+  ...listRow,
   instructions: "Heat the oven",
   ingredients: [{ measure: "175g", ingredient: { id: "ing-1", name: "Butter", img: null } }],
 };
 
-const emptyPage = <T>(page: PageRequest): Paginated<T> => ({ data: [], total: 0, ...page });
+const toPage = <T>(rows: T[], page: PageRequest): Paginated<T> => ({
+  data: rows,
+  total: rows.length,
+  ...page,
+});
 
 class FakeRecipes implements RecipesRepository {
   readonly created: NewRecipe[] = [];
   deletedId: Nullable<string> = null;
 
-  constructor(private readonly state: { detail?: RecipeDetailRow; ownerId?: Nullable<string> } = {}) {}
+  constructor(
+    private readonly state: {
+      detail?: RecipeDetailRow;
+      ownerId?: Nullable<string>;
+      rows?: RecipeListRow[];
+    } = {},
+  ) {}
 
-  async search({ page }: { filter: unknown; page: PageRequest }): Promise<Paginated<RecipeListItemView>> {
-    return emptyPage(page);
+  async search({ page }: { filter: unknown; page: PageRequest }): Promise<Paginated<RecipeListRow>> {
+    return toPage(this.state.rows ?? [], page);
   }
 
-  async listPopular(page: PageRequest): Promise<Paginated<PopularRecipeView>> {
-    return emptyPage(page);
+  async listPopular(page: PageRequest): Promise<Paginated<PopularRecipeRow>> {
+    return toPage(
+      (this.state.rows ?? []).map((row) => ({ ...row, _count: { favorites: 0 } })),
+      page,
+    );
   }
 
-  async listOwn({ page }: { ownerId: string; page: PageRequest }): Promise<Paginated<RecipeListItemView>> {
-    return emptyPage(page);
+  async listOwn({ page }: { ownerId: string; page: PageRequest }): Promise<Paginated<RecipeListRow>> {
+    return toPage(this.state.rows ?? [], page);
   }
 
   async findDetail(): Promise<Nullable<RecipeDetailRow>> {
@@ -66,11 +82,22 @@ class FakeRecipes implements RecipesRepository {
 
   async create(recipe: NewRecipe): Promise<CreatedRecipeView> {
     this.created.push(recipe);
-    return { ...listItem, instructions: recipe.instructions };
+    return { ...listRow, instructions: recipe.instructions };
   }
 
   async delete(id: string): Promise<void> {
     this.deletedId = id;
+  }
+}
+
+class FakeFavorites {
+  readonly lookups: { userId: string; recipeIds: string[] }[] = [];
+
+  constructor(private readonly favoriteIds: string[] = []) {}
+
+  async findFavoriteRecipeIds(input: { userId: string; recipeIds: string[] }): Promise<string[]> {
+    this.lookups.push(input);
+    return input.recipeIds.filter((id) => this.favoriteIds.includes(id));
   }
 }
 
@@ -94,6 +121,7 @@ const input = {
 const createService = (
   options: {
     recipes?: FakeRecipes;
+    favorites?: FakeFavorites;
     category?: Nullable<{ id: string }>;
     area?: Nullable<{ id: string }>;
     missingIngredients?: string[];
@@ -101,22 +129,24 @@ const createService = (
   } = {},
 ) => {
   const recipes = options.recipes ?? new FakeRecipes();
+  const favorites = options.favorites ?? new FakeFavorites();
   const images = options.images ?? new FakeImages();
   const service = new RecipesService({
     recipes,
+    favorites: new FavoriteMarker(favorites),
     images,
     categories: { findByName: async () => ("category" in options ? options.category : { id: "cat-1" }) ?? null },
     areas: { findByName: async () => ("area" in options ? options.area : { id: "area-1" }) ?? null },
     ingredients: { findMissingIds: async () => options.missingIngredients ?? [] },
   });
-  return { service, recipes, images };
+  return { service, recipes, favorites, images };
 };
 
 describe("RecipesService", () => {
   it("should flatten the ingredients of a recipe", async () => {
     const { service } = createService({ recipes: new FakeRecipes({ detail: detailRow }) });
 
-    await expect(service.getDetail(recipeId)).resolves.toMatchObject({
+    await expect(service.getDetail({ recipeId, viewerId: undefined })).resolves.toMatchObject({
       ingredients: [{ id: "ing-1", name: "Butter", measure: "175g", img: null }],
     });
   });
@@ -124,10 +154,84 @@ describe("RecipesService", () => {
   it("should answer 404 for an unknown recipe", async () => {
     const { service } = createService();
 
-    await expect(service.getDetail(recipeId)).rejects.toMatchObject({
+    await expect(service.getDetail({ recipeId, viewerId: ownerId })).rejects.toMatchObject({
       status: 404,
       message: "Recipe not found",
     });
+  });
+
+  it("should mark a recipe the viewer keeps in favorites", async () => {
+    const { service } = createService({
+      recipes: new FakeRecipes({ detail: detailRow }),
+      favorites: new FakeFavorites([recipeId]),
+    });
+
+    await expect(service.getDetail({ recipeId, viewerId: ownerId })).resolves.toMatchObject({
+      isFavorite: true,
+    });
+  });
+
+  it("should not mark a recipe the viewer never favorited", async () => {
+    const { service } = createService({ recipes: new FakeRecipes({ detail: detailRow }) });
+
+    await expect(service.getDetail({ recipeId, viewerId: ownerId })).resolves.toMatchObject({
+      isFavorite: false,
+    });
+  });
+
+  it("should answer isFavorite false to a guest without asking the favorites", async () => {
+    const { service, favorites } = createService({
+      recipes: new FakeRecipes({ detail: detailRow }),
+      favorites: new FakeFavorites([recipeId]),
+    });
+
+    await expect(service.getDetail({ recipeId, viewerId: undefined })).resolves.toMatchObject({
+      isFavorite: false,
+    });
+    expect(favorites.lookups).toEqual([]);
+  });
+
+  it("should mark a searched page with a single favorites lookup", async () => {
+    const rows = [listRow, { ...listRow, id: "recipe-2" }];
+    const { service, favorites } = createService({
+      recipes: new FakeRecipes({ rows }),
+      favorites: new FakeFavorites(["recipe-2"]),
+    });
+
+    const page = await service.search({
+      filter: {},
+      page: { page: 1, limit: 10 },
+      viewerId: ownerId,
+    });
+
+    expect(page.data.map(({ id, isFavorite }) => ({ id, isFavorite }))).toEqual([
+      { id: recipeId, isFavorite: false },
+      { id: "recipe-2", isFavorite: true },
+    ]);
+    expect(favorites.lookups).toEqual([{ userId: ownerId, recipeIds: [recipeId, "recipe-2"] }]);
+  });
+
+  it("should mark popular recipes for the viewer", async () => {
+    const { service } = createService({
+      recipes: new FakeRecipes({ rows: [listRow] }),
+      favorites: new FakeFavorites([recipeId]),
+    });
+
+    const page = await service.listPopular({ page: { page: 1, limit: 10 }, viewerId: ownerId });
+
+    expect(page.data).toEqual([{ ...listRow, _count: { favorites: 0 }, isFavorite: true }]);
+  });
+
+  it("should mark own recipes against their owner", async () => {
+    const { service, favorites } = createService({
+      recipes: new FakeRecipes({ rows: [listRow] }),
+      favorites: new FakeFavorites([recipeId]),
+    });
+
+    const page = await service.listOwn({ ownerId, page: { page: 1, limit: 10 } });
+
+    expect(page.data).toEqual([{ ...listRow, isFavorite: true }]);
+    expect(favorites.lookups).toEqual([{ userId: ownerId, recipeIds: [recipeId] }]);
   });
 
   it("should refuse an unknown category before touching the storage", async () => {
@@ -162,7 +266,9 @@ describe("RecipesService", () => {
   it("should upload the image and store the recipe with the resolved ids", async () => {
     const { service, recipes, images } = createService();
 
-    await service.create({ input, ownerId, imagePath: "/tmp/x.png" });
+    const created = await service.create({ input, ownerId, imagePath: "/tmp/x.png" });
+
+    expect(created).not.toHaveProperty("isFavorite");
 
     expect(images.uploads).toEqual([
       { path: "/tmp/x.png", folder: RECIPE_IMAGE.folder, transformation: RECIPE_IMAGE.transformation },

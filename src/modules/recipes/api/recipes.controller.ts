@@ -25,26 +25,37 @@ export class RecipesController {
   constructor(private readonly recipes: RecipesService) {}
 
   search = async (
-    _req: Request,
+    req: Request,
     res: Response<RecipesPage, { query: RecipesQuery }>,
   ): Promise<void> => {
     const { page, limit, ...filter } = res.locals.query;
 
-    sendPaginated(res, await this.recipes.search({ filter, page: { page, limit } }));
+    sendPaginated(
+      res,
+      await this.recipes.search({ filter, page: { page, limit }, viewerId: req.user?.sub }),
+    );
   };
 
   popular = async (
-    _req: Request,
+    req: Request,
     res: Response<Paginated<PopularRecipeView>, { query: PaginationQuery }>,
   ): Promise<void> => {
-    sendPaginated(res, await this.recipes.listPopular(res.locals.query));
+    sendPaginated(
+      res,
+      await this.recipes.listPopular({ page: res.locals.query, viewerId: req.user?.sub }),
+    );
   };
 
   getDetail = async (
     req: Request<RecipeIdParam, RecipeDetailView>,
     res: Response<RecipeDetailView>,
   ): Promise<void> => {
-    res.status(HTTP_STATUS.ok).json(await this.recipes.getDetail(req.params.id));
+    const recipe = await this.recipes.getDetail({
+      recipeId: req.params.id,
+      viewerId: req.user?.sub,
+    });
+
+    res.status(HTTP_STATUS.ok).json(recipe);
   };
 
   listOwn: AuthenticatedHandler<ParamsDictionary, RecipesPage, unknown, { query: PaginationQuery }> =
