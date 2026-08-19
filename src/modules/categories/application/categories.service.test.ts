@@ -5,14 +5,24 @@ import type { CategoryView } from "../domain/category.view.ts";
 import { CategoriesService } from "./categories.service.ts";
 
 const categories: CategoryView[] = [
-  { id: "cat-1", name: "Lamb" },
-  { id: "cat-2", name: "Seafood" },
+  {
+    id: "cat-1",
+    name: "Lamb",
+    image: null,
+    description: null,
+  },
+  {
+    id: "cat-2",
+    name: "Seafood",
+    image: "https://example.com/seafood.webp",
+    description: "Ocean-inspired dishes.",
+  },
 ];
 
 class FakeCategoriesReader implements CategoriesReader {
   readonly requestedNames: string[] = [];
 
-  constructor(private readonly rows: CategoryView[] = categories) {}
+  constructor(private readonly rows: CategoryView[] = categories) { }
 
   async list(): Promise<CategoryView[]> {
     return this.rows;
@@ -41,7 +51,12 @@ describe("CategoriesService", () => {
     const reader = new FakeCategoriesReader();
     const service = new CategoriesService(reader);
 
-    await expect(service.findByName("seafood")).resolves.toEqual({ id: "cat-2", name: "Seafood" });
+    await expect(service.findByName("seafood")).resolves.toEqual({
+      id: "cat-2",
+      name: "Seafood",
+      image: "https://example.com/seafood.webp",
+      description: "Ocean-inspired dishes.",
+    });
     expect(reader.requestedNames).toEqual(["seafood"]);
   });
 
