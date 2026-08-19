@@ -4,7 +4,9 @@ export type RecipeReferenceView = { id: string; name: string };
 
 export type RecipeOwnerView = { id: string; name: string; avatar: Nullable<string> };
 
-export type RecipeListItemView = {
+export type FavoriteMark = { isFavorite: boolean };
+
+export type RecipeSummaryView = {
   id: string;
   title: string;
   description: Nullable<string>;
@@ -16,9 +18,11 @@ export type RecipeListItemView = {
   owner: RecipeOwnerView;
 };
 
+export type RecipeListItemView = RecipeSummaryView & FavoriteMark;
+
 export type PopularRecipeView = RecipeListItemView & { _count: { favorites: number } };
 
-export type CreatedRecipeView = RecipeListItemView & { instructions: string };
+export type CreatedRecipeView = RecipeSummaryView & { instructions: string };
 
 export type RecipeIngredientView = {
   id: string;
@@ -27,6 +31,8 @@ export type RecipeIngredientView = {
   img: Nullable<string>;
 };
 
-export type RecipeDetailView = CreatedRecipeView & { ingredients: RecipeIngredientView[] };
+export type RecipeDetailContent = CreatedRecipeView & { ingredients: RecipeIngredientView[] };
+
+export type RecipeDetailView = RecipeDetailContent & FavoriteMark;
 
 export type MessageView = { message: string };

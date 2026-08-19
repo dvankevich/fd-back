@@ -3,15 +3,13 @@ import { toPage, toSkip, type PageRequest, type Paginated } from "../../../core/
 import type { Nullable } from "../../../core/types/common.ts";
 import type {
   NewRecipe,
+  PopularRecipeRow,
   RecipeDetailRow,
   RecipeFilter,
+  RecipeListRow,
   RecipesRepository,
 } from "../domain/recipes.port.ts";
-import type {
-  CreatedRecipeView,
-  PopularRecipeView,
-  RecipeListItemView,
-} from "../domain/recipe.view.ts";
+import type { CreatedRecipeView } from "../domain/recipe.view.ts";
 import {
   createdRecipeSelect,
   popularRecipeSelect,
@@ -31,7 +29,7 @@ export class PrismaRecipesRepository implements RecipesRepository {
   }: {
     filter: RecipeFilter;
     page: PageRequest;
-  }): Promise<Paginated<RecipeListItemView>> {
+  }): Promise<Paginated<RecipeListRow>> {
     const where = toRecipeWhere(filter);
 
     const [rows, total] = await Promise.all([
@@ -48,7 +46,7 @@ export class PrismaRecipesRepository implements RecipesRepository {
     return toPage({ rows, total, page });
   }
 
-  async listPopular(page: PageRequest): Promise<Paginated<PopularRecipeView>> {
+  async listPopular(page: PageRequest): Promise<Paginated<PopularRecipeRow>> {
     const [rows, total] = await Promise.all([
       this.client.recipe.findMany({
         select: popularRecipeSelect,
@@ -68,7 +66,7 @@ export class PrismaRecipesRepository implements RecipesRepository {
   }: {
     ownerId: string;
     page: PageRequest;
-  }): Promise<Paginated<RecipeListItemView>> {
+  }): Promise<Paginated<RecipeListRow>> {
     const where = { ownerId };
 
     const [rows, total] = await Promise.all([

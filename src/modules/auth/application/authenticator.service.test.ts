@@ -141,3 +141,70 @@ describe("AuthenticatorService.authenticate", () => {
     expect(exists).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("AuthenticatorService.identify", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("should stay anonymous without an Authorization header", async () => {
+    const { service, exists } = createService();
+
+    await expect(service.identify(undefined)).resolves.toBeUndefined();
+    expect(exists).not.toHaveBeenCalled();
+  });
+
+  it("should stay anonymous for a non-Bearer scheme", async () => {
+    const { service } = createService();
+
+    await expect(service.identify(`Basic ${validToken}`)).resolves.toBeUndefined();
+  });
+
+  it("should stay anonymous for a malformed token", async () => {
+    const { service, exists } = createService();
+
+    await expect(service.identify(bearer("not-a-jwt"))).resolves.toBeUndefined();
+    expect(exists).not.toHaveBeenCalled();
+  });
+
+  it("should stay anonymous for a token signed with another secret", async () => {
+    const { service } = createService();
+    const forgedToken = new TokenService({
+      ...AUTH_CONFIG,
+      accessToken: { ...AUTH_CONFIG.accessToken, secret: otherSecret },
+      clock: systemClock,
+    }).signAccessToken(userId);
+
+    await expect(service.identify(bearer(forgedToken))).resolves.toBeUndefined();
+  });
+
+  it("should stay anonymous for an expired access token", async () => {
+    vi.useFakeTimers();
+    const { service } = createService();
+    const token = tokenCodec.signAccessToken(userId);
+    vi.advanceTimersByTime(AUTH_CONFIG.accessToken.ttlMs + TIME_MS.second);
+
+    await expect(service.identify(bearer(token))).resolves.toBeUndefined();
+  });
+
+  it("should stay anonymous when the user no longer exists", async () => {
+    const { service, exists } = createService();
+    exists.mockResolvedValue(false);
+
+    await expect(service.identify(bearer(validToken))).resolves.toBeUndefined();
+    expect(exists).toHaveBeenCalledWith(userId);
+  });
+
+  it("should fall back to a guest when the user lookup fails", async () => {
+    const { service, exists } = createService();
+    exists.mockRejectedValue(new Error("database is down"));
+
+    await expect(service.identify(bearer(validToken))).resolves.toBeUndefined();
+  });
+
+  it("should resolve the payload for a valid token", async () => {
+    const { service } = createService();
+
+    await expect(service.identify(bearer(validToken))).resolves.toEqual({ sub: userId });
+  });
+});

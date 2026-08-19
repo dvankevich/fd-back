@@ -1,7 +1,10 @@
 import type { RecipeDetailRow } from "./recipes.port.ts";
-import type { RecipeDetailView } from "./recipe.view.ts";
+import type { RecipeDetailContent } from "./recipe.view.ts";
 
-export const toRecipeDetailView = ({ ingredients, ...recipe }: RecipeDetailRow): RecipeDetailView => ({
+export const toRecipeDetailContent = ({
+  ingredients,
+  ...recipe
+}: RecipeDetailRow): RecipeDetailContent => ({
   ...recipe,
   ingredients: ingredients.map(({ measure, ingredient }) => ({
     id: ingredient.id,

@@ -11,6 +11,7 @@ type RecipesRouterOptions = {
   controller: RecipesController;
   favorites: FavoritesController;
   authenticate: RequestHandler;
+  optionalAuthenticate: RequestHandler;
 };
 
 const uploadThumb = createSingleFileUpload("thumb");
@@ -19,11 +20,17 @@ export const createRecipesRouter = ({
   controller,
   favorites,
   authenticate,
+  optionalAuthenticate,
 }: RecipesRouterOptions): Router => {
   const router = Router();
 
-  router.get("/", validateQuery(RecipesQuerySchema), controller.search);
-  router.get("/popular", validateQuery(PaginationQuerySchema), controller.popular);
+  router.get("/", optionalAuthenticate, validateQuery(RecipesQuerySchema), controller.search);
+  router.get(
+    "/popular",
+    optionalAuthenticate,
+    validateQuery(PaginationQuerySchema),
+    controller.popular,
+  );
 
   router.get("/own", authenticate, validateQuery(PaginationQuerySchema), withUser(controller.listOwn));
   router.get("/favorites", authenticate, validateQuery(PaginationQuerySchema), withUser(favorites.list));
@@ -33,7 +40,7 @@ export const createRecipesRouter = ({
   router.post("/:id/favorite", authenticate, withUser(favorites.add));
   router.delete("/:id/favorite", authenticate, withUser(favorites.remove));
 
-  router.get("/:id", controller.getDetail);
+  router.get("/:id", optionalAuthenticate, controller.getDetail);
   router.delete("/:id", authenticate, withUser(controller.delete));
 
   return router;

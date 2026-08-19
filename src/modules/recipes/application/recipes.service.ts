@@ -1,8 +1,9 @@
 import { BadRequestError, ForbiddenError, NotFoundError } from "../../../core/exceptions/errors.ts";
 import logger from "../../../core/logger.ts";
 import type { PageRequest, Paginated } from "../../../core/paginator.ts";
+import type { Optional } from "../../../core/types/common.ts";
 import type { ImageStorage } from "../../media/index.ts";
-import { toRecipeDetailView } from "../domain/recipe.mapper.ts";
+import { toRecipeDetailContent } from "../domain/recipe.mapper.ts";
 import type {
   CreatedRecipeView,
   PopularRecipeView,
@@ -18,6 +19,7 @@ import type {
   RecipeIngredientInput,
   RecipesRepository,
 } from "../domain/recipes.port.ts";
+import type { FavoriteMarker } from "./favorite-marker.ts";
 
 export const RECIPE_IMAGE = {
   folder: "foodies/recipes",
@@ -26,6 +28,7 @@ export const RECIPE_IMAGE = {
 
 type RecipesServiceOptions = {
   recipes: RecipesRepository;
+  favorites: FavoriteMarker;
   categories: CategoryResolver;
   areas: AreaResolver;
   ingredients: IngredientChecker;
@@ -44,41 +47,61 @@ export type NewRecipeInput = {
 
 type CreateRecipeArgs = { input: NewRecipeInput; ownerId: string; imagePath: string };
 
+type ViewerPage = { page: PageRequest; viewerId: Optional<string> };
+
 export class RecipesService {
   private readonly recipes: RecipesRepository;
+  private readonly favorites: FavoriteMarker;
   private readonly categories: CategoryResolver;
   private readonly areas: AreaResolver;
   private readonly ingredients: IngredientChecker;
   private readonly images: ImageStorage;
 
-  constructor({ recipes, categories, areas, ingredients, images }: RecipesServiceOptions) {
+  constructor({ recipes, favorites, categories, areas, ingredients, images }: RecipesServiceOptions) {
     this.recipes = recipes;
+    this.favorites = favorites;
     this.categories = categories;
     this.areas = areas;
     this.ingredients = ingredients;
     this.images = images;
   }
 
-  search(input: { filter: RecipeFilter; page: PageRequest }): Promise<Paginated<RecipeListItemView>> {
-    return this.recipes.search(input);
+  async search({
+    filter,
+    page,
+    viewerId,
+  }: ViewerPage & { filter: RecipeFilter }): Promise<Paginated<RecipeListItemView>> {
+    return this.favorites.markPage(await this.recipes.search({ filter, page }), viewerId);
   }
 
-  listPopular(page: PageRequest): Promise<Paginated<PopularRecipeView>> {
-    return this.recipes.listPopular(page);
+  async listPopular({ page, viewerId }: ViewerPage): Promise<Paginated<PopularRecipeView>> {
+    return this.favorites.markPage(await this.recipes.listPopular(page), viewerId);
   }
 
-  listOwn(input: { ownerId: string; page: PageRequest }): Promise<Paginated<RecipeListItemView>> {
-    return this.recipes.listOwn(input);
+  async listOwn({
+    ownerId,
+    page,
+  }: {
+    ownerId: string;
+    page: PageRequest;
+  }): Promise<Paginated<RecipeListItemView>> {
+    return this.favorites.markPage(await this.recipes.listOwn({ ownerId, page }), ownerId);
   }
 
-  async getDetail(recipeId: string): Promise<RecipeDetailView> {
+  async getDetail({
+    recipeId,
+    viewerId,
+  }: {
+    recipeId: string;
+    viewerId: Optional<string>;
+  }): Promise<RecipeDetailView> {
     const recipe = await this.recipes.findDetail(recipeId);
 
     if (!recipe) {
       throw new NotFoundError(RECIPES_MESSAGE.notFound);
     }
 
-    return toRecipeDetailView(recipe);
+    return this.favorites.markOne(toRecipeDetailContent(recipe), viewerId);
   }
 
   async create({ input, ownerId, imagePath }: CreateRecipeArgs): Promise<CreatedRecipeView> {

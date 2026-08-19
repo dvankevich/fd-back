@@ -20,8 +20,13 @@ export class FavoritesService {
     this.recipes = recipes;
   }
 
-  list(input: { userId: string; page: PageRequest }): Promise<Paginated<RecipeListItemView>> {
-    return this.favorites.listRecipes(input);
+  async list(input: { userId: string; page: PageRequest }): Promise<Paginated<RecipeListItemView>> {
+    const favorites = await this.favorites.listRecipes(input);
+
+    return {
+      ...favorites,
+      data: favorites.data.map((recipe) => ({ ...recipe, isFavorite: true })),
+    };
   }
 
   async add({ userId, recipeId }: FavoriteArgs): Promise<void> {

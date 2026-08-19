@@ -2,9 +2,8 @@ import type { PageRequest, Paginated } from "../../../core/paginator.ts";
 import type { Nullable } from "../../../core/types/common.ts";
 import type {
   CreatedRecipeView,
-  PopularRecipeView,
   RecipeIngredientView,
-  RecipeListItemView,
+  RecipeSummaryView,
 } from "./recipe.view.ts";
 
 export type RecipeFilter = {
@@ -28,6 +27,10 @@ export type NewRecipe = {
   ingredients: RecipeIngredientInput[];
 };
 
+export type RecipeListRow = RecipeSummaryView;
+
+export type PopularRecipeRow = RecipeSummaryView & { _count: { favorites: number } };
+
 export type RecipeDetailRow = CreatedRecipeView & {
   ingredients: { measure: string; ingredient: Omit<RecipeIngredientView, "measure"> }[];
 };
@@ -45,9 +48,9 @@ export interface IngredientChecker {
 }
 
 export interface RecipesRepository {
-  search(input: { filter: RecipeFilter; page: PageRequest }): Promise<Paginated<RecipeListItemView>>;
-  listPopular(page: PageRequest): Promise<Paginated<PopularRecipeView>>;
-  listOwn(input: { ownerId: string; page: PageRequest }): Promise<Paginated<RecipeListItemView>>;
+  search(input: { filter: RecipeFilter; page: PageRequest }): Promise<Paginated<RecipeListRow>>;
+  listPopular(page: PageRequest): Promise<Paginated<PopularRecipeRow>>;
+  listOwn(input: { ownerId: string; page: PageRequest }): Promise<Paginated<RecipeListRow>>;
   findDetail(recipeId: string): Promise<Nullable<RecipeDetailRow>>;
   findOwnerId(recipeId: string): Promise<Nullable<string>>;
   exists(recipeId: string): Promise<boolean>;
@@ -56,7 +59,8 @@ export interface RecipesRepository {
 }
 
 export interface FavoritesRepository {
-  listRecipes(input: { userId: string; page: PageRequest }): Promise<Paginated<RecipeListItemView>>;
+  listRecipes(input: { userId: string; page: PageRequest }): Promise<Paginated<RecipeListRow>>;
+  findFavoriteRecipeIds(input: { userId: string; recipeIds: string[] }): Promise<string[]>;
   add(input: { userId: string; recipeId: string }): Promise<void>;
   remove(input: { userId: string; recipeId: string }): Promise<number>;
 }

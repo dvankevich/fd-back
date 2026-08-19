@@ -6,7 +6,7 @@ import { API_PREFIX, type ApiModule } from "../../core/http/api-module.ts";
 import type { Clock } from "../../core/types/common.ts";
 import { AuthController } from "./api/auth.controller.ts";
 import { createAuthRouter } from "./api/auth.routes.ts";
-import { createAuthenticate } from "./api/authenticate.middleware.ts";
+import { createAuthenticate, createOptionalAuthenticate } from "./api/authenticate.middleware.ts";
 import { RefreshCookie } from "./api/refresh-cookie.ts";
 import { AUTH_CONFIG, type AuthConfig } from "./auth.config.ts";
 import { AuthService } from "./application/auth.service.ts";
@@ -31,7 +31,7 @@ export type AuthContainer = {
   sessionRepository: SessionRepository;
   userRepository: AuthUserRepository;
   sessionService: Pick<SessionService, "issue" | "rotate" | "revoke" | "revokeAll" | "deleteExpired">;
-  authenticatorService: Pick<AuthenticatorService, "authenticate" | "evictUser">;
+  authenticatorService: Pick<AuthenticatorService, "authenticate" | "identify" | "evictUser">;
   refreshCookie: Pick<RefreshCookie, "read" | "set" | "clear">;
   authService: AuthService;
 };
@@ -80,10 +80,15 @@ export const createAuthContainer = ({
 
 export const authContainer = createAuthContainer();
 
-export type AuthModule = ApiModule & { container: AuthContainer; authenticate: RequestHandler };
+export type AuthModule = ApiModule & {
+  container: AuthContainer;
+  authenticate: RequestHandler;
+  optionalAuthenticate: RequestHandler;
+};
 
 export const createAuthModule = (container: AuthContainer = authContainer): AuthModule => {
   const authenticate = createAuthenticate(container.authenticatorService);
+  const optionalAuthenticate = createOptionalAuthenticate(container.authenticatorService);
   const controller = new AuthController({
     auth: container.authService,
     refreshCookie: container.refreshCookie,
@@ -93,6 +98,7 @@ export const createAuthModule = (container: AuthContainer = authContainer): Auth
     path: `${API_PREFIX}/auth`,
     router: createAuthRouter({ controller, authenticate, rateLimit: container.config.rateLimit }),
     authenticate,
+    optionalAuthenticate,
     container,
   };
 };

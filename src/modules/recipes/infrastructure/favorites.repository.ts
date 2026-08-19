@@ -3,8 +3,7 @@ import type { PrismaClient } from "../../../core/database/prisma.ts";
 import { ConflictError } from "../../../core/exceptions/errors.ts";
 import { toPage, toSkip, type PageRequest, type Paginated } from "../../../core/paginator.ts";
 import { RECIPES_MESSAGE } from "../domain/recipes.messages.ts";
-import type { FavoritesRepository } from "../domain/recipes.port.ts";
-import type { RecipeListItemView } from "../domain/recipe.view.ts";
+import type { FavoritesRepository, RecipeListRow } from "../domain/recipes.port.ts";
 import { recipeListSelect } from "./recipe-select.ts";
 
 const rethrowAlreadyFavorite = (err: unknown): never => {
@@ -23,7 +22,7 @@ export class PrismaFavoritesRepository implements FavoritesRepository {
   }: {
     userId: string;
     page: PageRequest;
-  }): Promise<Paginated<RecipeListItemView>> {
+  }): Promise<Paginated<RecipeListRow>> {
     const where = { userId };
 
     const [favorites, total] = await Promise.all([
@@ -38,6 +37,21 @@ export class PrismaFavoritesRepository implements FavoritesRepository {
     ]);
 
     return toPage({ rows: favorites.map((favorite) => favorite.recipe), total, page });
+  }
+
+  async findFavoriteRecipeIds({
+    userId,
+    recipeIds,
+  }: {
+    userId: string;
+    recipeIds: string[];
+  }): Promise<string[]> {
+    const favorites = await this.client.favorite.findMany({
+      where: { userId, recipeId: { in: recipeIds } },
+      select: { recipeId: true },
+    });
+
+    return favorites.map(({ recipeId }) => recipeId);
   }
 
   async add({ userId, recipeId }: { userId: string; recipeId: string }): Promise<void> {

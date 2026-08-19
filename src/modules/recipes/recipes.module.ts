@@ -10,6 +10,7 @@ import { mediaModule, type ImageStorage } from "../media/index.ts";
 import { FavoritesController } from "./api/favorites.controller.ts";
 import { RecipesController } from "./api/recipes.controller.ts";
 import { createRecipesRouter } from "./api/recipes.routes.ts";
+import { FavoriteMarker } from "./application/favorite-marker.ts";
 import { FavoritesService } from "./application/favorites.service.ts";
 import { RecipesService } from "./application/recipes.service.ts";
 import type { AreaResolver, CategoryResolver, IngredientChecker } from "./domain/recipes.port.ts";
@@ -26,6 +27,7 @@ type RecipesModuleOptions = {
   ingredients?: IngredientChecker;
   images?: ImageStorage;
   authenticate?: RequestHandler;
+  optionalAuthenticate?: RequestHandler;
 };
 
 export const createRecipesModule = ({
@@ -35,13 +37,19 @@ export const createRecipesModule = ({
   ingredients = ingredientsModule.service,
   images = mediaModule.imageStorage,
   authenticate = authModule.authenticate,
+  optionalAuthenticate = authModule.optionalAuthenticate,
 }: RecipesModuleOptions = {}): RecipesModule => {
   const recipes = new PrismaRecipesRepository(client);
-  const service = new RecipesService({ recipes, categories, areas, ingredients, images });
-  const favorites = new FavoritesService({
-    favorites: new PrismaFavoritesRepository(client),
+  const favoritesRepository = new PrismaFavoritesRepository(client);
+  const service = new RecipesService({
     recipes,
+    favorites: new FavoriteMarker(favoritesRepository),
+    categories,
+    areas,
+    ingredients,
+    images,
   });
+  const favorites = new FavoritesService({ favorites: favoritesRepository, recipes });
 
   return {
     path: `${API_PREFIX}/recipes`,
@@ -49,6 +57,7 @@ export const createRecipesModule = ({
       controller: new RecipesController(service),
       favorites: new FavoritesController(favorites),
       authenticate,
+      optionalAuthenticate,
     }),
     service,
     favorites,

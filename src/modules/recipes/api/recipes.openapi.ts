@@ -13,6 +13,13 @@ import {
   RecipeDetailSchema,
 } from "./view-dto/recipe.view-dto.ts";
 
+const OPTIONAL_AUTH: { security: Record<string, string[]>[]; note: string } = {
+  security: [{}, { bearerAuth: [] }],
+  note:
+    "The access token is optional: with one, isFavorite reflects the caller's favorites, " +
+    "without one it is false and the request still succeeds.",
+};
+
 // --- Public ---
 
 registry.registerPath({
@@ -21,7 +28,9 @@ registry.registerPath({
   tags: ["Recipes"],
   summary: "Search recipes",
   description:
-    "Search recipes by category, area and/or ingredient. Supports pagination.",
+    "Search recipes by category, area and/or ingredient. Supports pagination. " +
+    OPTIONAL_AUTH.note,
+  security: OPTIONAL_AUTH.security,
   request: {
     query: RecipesQuerySchema,
   },
@@ -47,7 +56,9 @@ registry.registerPath({
   tags: ["Recipes"],
   summary: "Get popular recipes",
   description:
-    "Returns all recipes sorted by favorites count (descending), with pagination.",
+    "Returns all recipes sorted by favorites count (descending), with pagination. " +
+    OPTIONAL_AUTH.note,
+  security: OPTIONAL_AUTH.security,
   request: {
     query: PaginationQuerySchema,
   },
@@ -73,7 +84,8 @@ registry.registerPath({
   path: "/api/recipes/{id}",
   tags: ["Recipes"],
   summary: "Get recipe by id",
-  description: "Returns detailed information about a recipe.",
+  description: "Returns detailed information about a recipe. " + OPTIONAL_AUTH.note,
+  security: OPTIONAL_AUTH.security,
   request: {
     params: RecipeIdParamSchema,
   },
@@ -104,7 +116,8 @@ registry.registerPath({
     "Creates a recipe with required thumb image. " +
     "Content-Type: multipart/form-data. " +
     "category and area are **names** (e.g. \"Dessert\", \"British\"), not ids. " +
-    "ingredients must be a JSON string: [{\"id\":\"...\",\"measure\":\"175g\"}].",
+    "ingredients must be a JSON string: [{\"id\":\"...\",\"measure\":\"175g\"}]. " +
+    "A freshly created recipe cannot be a favorite yet, so the response carries no isFavorite.",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
@@ -197,7 +210,9 @@ registry.registerPath({
   path: "/api/recipes/own",
   tags: ["Recipes"],
   summary: "Get own recipes",
-  description: "Returns paginated list of recipes created by the authenticated user.",
+  description:
+    "Returns paginated list of recipes created by the authenticated user. " +
+    "isFavorite tells whether the caller has that own recipe in favorites.",
   security: [{ bearerAuth: [] }],
   request: {
     query: PaginationQuerySchema,
@@ -225,7 +240,9 @@ registry.registerPath({
   path: "/api/recipes/favorites",
   tags: ["Recipes"],
   summary: "Get favorite recipes",
-  description: "Returns paginated list of recipes favorited by the authenticated user.",
+  description:
+    "Returns paginated list of recipes favorited by the authenticated user. " +
+    "isFavorite is always true here.",
   security: [{ bearerAuth: [] }],
   request: {
     query: PaginationQuerySchema,

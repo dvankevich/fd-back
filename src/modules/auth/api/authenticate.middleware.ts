@@ -11,6 +11,14 @@ export const createAuthenticate =
     next();
   };
 
+export const createOptionalAuthenticate =
+  (authenticator: Pick<AuthenticatorService, "identify">): RequestHandler =>
+  async (req, res, next) => {
+    res.vary("Authorization");
+    req.user = await authenticator.identify(req.headers.authorization);
+    next();
+  };
+
 export type AuthenticatedHandler<
   P = ParamsDictionary,
   ResBody = unknown,
