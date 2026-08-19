@@ -1,35 +1,37 @@
-import jwt from "jsonwebtoken";
-import createHttpError from "http-errors";
-import type { Request, Response, NextFunction } from "express";
-import { env } from "../config/env.ts";
-import type { AuthPayload } from "../types/auth.ts";
+import type { NextFunction, Request, RequestHandler, Response } from "express";
+import type { ParamsDictionary } from "express-serve-static-core";
+import { authContainer } from "../services/auth.container.ts";
+import type { AuthenticatorService } from "../services/authenticator.service.ts";
+import type { AuthenticatedRequest } from "../types/auth.ts";
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthPayload;
-    }
-  }
-}
-
-const authenticate = (
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-
-  if (!token) {
-    throw createHttpError(401, "Authentication required");
-  }
-
-  try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as AuthPayload;
-    req.user = decoded;
+export const createAuthenticate =
+  (authenticator: Pick<AuthenticatorService, "authenticate">): RequestHandler =>
+  async (req, _res, next) => {
+    req.user = await authenticator.authenticate(req.headers.authorization);
     next();
-  } catch {
-    throw createHttpError(401, "Invalid or expired token");
-  }
-};
+  };
+
+const authenticate = createAuthenticate(authContainer.authenticatorService);
+
+export type AuthenticatedHandler<
+  P = ParamsDictionary,
+  ResBody = unknown,
+  ReqBody = unknown,
+> = (req: AuthenticatedRequest<P, ResBody, ReqBody>, res: Response<ResBody>) => Promise<void>;
+
+const MISSING_AUTHENTICATE = "withUser() requires the authenticate middleware on the route";
+
+export const withUser =
+  <P = ParamsDictionary, ResBody = unknown, ReqBody = unknown>(
+    handler: AuthenticatedHandler<P, ResBody, ReqBody>,
+  ): RequestHandler<P, ResBody, ReqBody> =>
+  (req: Request<P, ResBody, ReqBody>, res: Response<ResBody>, next: NextFunction) => {
+    const { user } = req;
+    if (!user) {
+      next(new Error(MISSING_AUTHENTICATE));
+      return;
+    }
+    return handler(Object.assign(req, { user }), res);
+  };
 
 export default authenticate;

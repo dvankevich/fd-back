@@ -1,161 +1,149 @@
-import { env } from "../config/env.ts";
-import type { AuthenticatedRequest } from "../types/auth.ts";
 import createHttpError from "http-errors";
 import type { Request, Response } from "express";
+import type { ParamsDictionary } from "express-serve-static-core";
 import prisma from "../../prisma/client.ts";
-import {
-  createTokens,
-  setRefreshTokenCookie,
-  hashPassword,
-  verifyPassword,
-  hashToken,
-} from "../services/auth.ts";
-import type { RegisterBody, LoginBody } from "../validators/auth.validator.ts";
+import type { Prisma, User } from "../../generated/prisma/client.ts";
+import { HTTP_STATUS } from "../constants/http.ts";
+import type { AuthenticatedHandler } from "../middleware/authenticate.ts";
+import { authContainer } from "../services/auth.container.ts";
+import type { TokenPair } from "../services/auth.ports.ts";
+import { isSessionEnded } from "../services/session.service.ts";
+import { isUniqueViolation } from "../utils/prismaErrors.ts";
+import type {
+  AuthResponse,
+  AuthUser,
+  LoginBody,
+  RefreshTokenBody,
+  RegisterBody,
+  Tokens,
+} from "../validators/auth.validator.ts";
 import logger from "../logger.ts";
 
+const { passwordService, sessionService, refreshCookie } = authContainer;
+
+const AUTH_MESSAGE = {
+  emailTaken: "Email already taken",
+  invalidCredentials: "Invalid credentials",
+  refreshTokenRequired: "Refresh token required",
+} as const;
+
+const authUserSelect = {
+  id: true,
+  name: true,
+  email: true,
+  avatar: true,
+} as const satisfies Prisma.UserSelect;
+
+const toAuthUser = ({ id, name, email, avatar }: Pick<User, keyof typeof authUserSelect>): AuthUser => ({
+  id,
+  name,
+  email,
+  avatar,
+});
+
+const rethrowEmailTaken = (err: unknown): never => {
+  if (isUniqueViolation(err)) {
+    throw createHttpError(HTTP_STATUS.conflict, AUTH_MESSAGE.emailTaken);
+  }
+  throw err;
+};
+
+const startSession = async (res: Pick<Response, "cookie">, userId: string): Promise<TokenPair> => {
+  const tokens = await sessionService.issue(userId);
+  refreshCookie.set(res, tokens.refreshToken);
+  return tokens;
+};
+
+const clearCookieWhenEnded =
+  (res: Pick<Response, "clearCookie">) =>
+  (err: unknown): never => {
+    if (isSessionEnded(err)) {
+      refreshCookie.clear(res);
+    }
+    throw err;
+  };
+
 export const register = async (
-  req: Request<{}, {}, RegisterBody>,
-  res: Response,
+  req: Request<ParamsDictionary, AuthResponse, RegisterBody>,
+  res: Response<AuthResponse>,
 ) => {
   const { email, password, name } = req.body;
 
   logger.debug({ email }, "Register attempt");
 
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-  });
+  const passwordHash = await passwordService.hash(password);
 
-  if (existingUser) {
-    logger.debug({ email }, "Register failed: email already taken");
-    throw createHttpError(409, "Email already taken");
-  }
+  const user = await prisma.user
+    .create({ data: { email, password: passwordHash, name }, select: authUserSelect })
+    .catch(rethrowEmailTaken);
+  const tokens = await startSession(res, user.id);
 
-  const hashedPassword = await hashPassword(password);
+  logger.info({ userId: user.id }, "User registered");
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      name,
-    },
-  });
-
-  const tokens = await createTokens(user.id);
-  setRefreshTokenCookie(res, tokens.refreshToken);
-
-  logger.info({ userId: user.id, email: user.email }, "User registered");
-
-  res.status(201).json({
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-    },
-  });
+  res.status(HTTP_STATUS.created).json({ ...tokens, user });
 };
 
-export const login = async (req: Request<{}, {}, LoginBody>, res: Response) => {
+export const login = async (
+  req: Request<ParamsDictionary, AuthResponse, LoginBody>,
+  res: Response<AuthResponse>,
+) => {
   const { email, password } = req.body;
 
   logger.debug({ email }, "Login attempt");
 
-  const user = await prisma.user.findUnique({
+  const account = await prisma.user.findUnique({
     where: { email },
+    select: { ...authUserSelect, password: true },
   });
 
-  if (!user) {
-    logger.debug({ email }, "Login failed: user not found");
-    throw createHttpError(401, "Invalid credentials");
+  const passwordMatches = await passwordService.verify(password, account?.password);
+  if (!account || !passwordMatches) {
+    throw createHttpError(HTTP_STATUS.unauthorized, AUTH_MESSAGE.invalidCredentials);
   }
 
-  const isPasswordValid = await verifyPassword(password, user.password);
+  await sessionService.deleteExpired(account.id);
+  const tokens = await startSession(res, account.id);
 
-  if (!isPasswordValid) {
-    logger.debug({ userId: user.id, email }, "Login failed: invalid password");
-    throw createHttpError(401, "Invalid credentials");
-  }
+  logger.info({ userId: account.id }, "User logged in");
 
-  const tokens = await createTokens(user.id);
-  setRefreshTokenCookie(res, tokens.refreshToken);
-
-  logger.info({ userId: user.id, email: user.email }, "User logged in");
-
-  res.status(200).json({
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-    },
-  });
+  res.status(HTTP_STATUS.ok).json({ ...tokens, user: toAuthUser(account) });
 };
 
-export const refresh = async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+export const refresh = async (
+  req: Request<ParamsDictionary, Tokens, RefreshTokenBody>,
+  res: Response<Tokens>,
+) => {
+  const presentedToken = refreshCookie.read(req);
 
   logger.debug("Refresh token attempt");
 
-  if (!refreshToken) {
-    logger.debug("Refresh failed: token not provided");
-    throw createHttpError(401, "Refresh token not provided");
+  if (!presentedToken) {
+    throw createHttpError(HTTP_STATUS.unauthorized, AUTH_MESSAGE.refreshTokenRequired);
   }
 
-  const tokenHash = hashToken(refreshToken);
+  const { userId, ...tokens } = await sessionService.rotate(presentedToken).catch(clearCookieWhenEnded(res));
+  refreshCookie.set(res, tokens.refreshToken);
 
-  const storedToken = await prisma.refreshToken.findFirst({
-    where: { token: tokenHash },
-  });
+  logger.info({ userId }, "Tokens refreshed");
 
-  if (!storedToken) {
-    logger.debug("Refresh failed: invalid token");
-    throw createHttpError(401, "Invalid refresh token");
-  }
-
-  if (new Date() > storedToken.expiresAt) {
-    await prisma.refreshToken.delete({ where: { id: storedToken.id } });
-    logger.debug({ userId: storedToken.userId }, "Refresh failed: token expired");
-    throw createHttpError(401, "Refresh token expired");
-  }
-
-  // Видаляємо старий refresh token (rotation)
-  await prisma.refreshToken.delete({ where: { id: storedToken.id } });
-
-  const tokens = await createTokens(storedToken.userId);
-  setRefreshTokenCookie(res, tokens.refreshToken);
-
-  logger.info({ userId: storedToken.userId }, "Tokens refreshed");
-
-  res.status(200).json({
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
-  });
+  res.status(HTTP_STATUS.ok).json(tokens);
 };
 
-export const logout = async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+export const logout: AuthenticatedHandler<ParamsDictionary, void, RefreshTokenBody> = async (
+  req,
+  res,
+) => {
+  const userId = req.user.sub;
 
-  logger.debug("Logout attempt");
+  logger.debug({ userId }, "Logout attempt");
 
-  if (refreshToken) {
-    const tokenHash = hashToken(refreshToken);
-    await prisma.refreshToken.deleteMany({
-      where: { token: tokenHash },
-    });
-  }
+  const refreshToken = refreshCookie.read(req);
+  const revokedSessions = refreshToken
+    ? await sessionService.revoke({ userId, refreshToken })
+    : await sessionService.revokeAll(userId);
+  refreshCookie.clear(res);
 
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: "strict",
-  });
+  logger.info({ userId, revokedSessions }, "User logged out");
 
-  logger.info("User logged out");
-
-  res.status(204).end();
+  res.status(HTTP_STATUS.noContent).end();
 };
-

@@ -30,12 +30,13 @@ model User {
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token     String   @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @map("token")
   expiresAt DateTime
-  createdAt DateTime @default(now())
+  rotatedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([userId])
 }

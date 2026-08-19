@@ -1,26 +1,80 @@
 import { z } from "zod";
 import { registry } from "../openapi/registry.ts";
+import { AUTH_CONFIG } from "../config/auth.ts";
+import { AUTH_LIMITS } from "../constants/auth.ts";
+import { TIME_MS } from "../constants/time.ts";
+import { RATE_LIMIT_MESSAGE } from "../middleware/rateLimit.ts";
 
-// ====================== Request schemas ======================
+const REFRESH_TOKEN_EXAMPLE = "b7a5d9c8a296022d69b264168629b27e7fa55ffe883d7b4653c9425fd1f3667b317637810c06ec7e";
+
+const COOKIE = {
+  name: AUTH_CONFIG.cookie.name,
+  path: AUTH_CONFIG.cookie.options.path,
+  maxAgeSeconds: AUTH_CONFIG.session.ttlMs / TIME_MS.second,
+} as const;
+
+const EXAMPLE = {
+  accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiaWF0IjoxNjk5...",
+  refreshToken: REFRESH_TOKEN_EXAMPLE,
+  setCookie: `${COOKIE.name}=${REFRESH_TOKEN_EXAMPLE}; Max-Age=${COOKIE.maxAgeSeconds}; Path=${COOKIE.path}; HttpOnly; SameSite=Strict`,
+  clearedCookie: `${COOKIE.name}=; Path=${COOKIE.path}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict`,
+} as const;
+
+const COOKIE_DESCRIPTION = {
+  request: `httpOnly refresh cookie, scoped to ${COOKIE.path}`,
+  set: "New refresh token; httpOnly, SameSite=Strict, Secure in production",
+  cleared: "Refresh cookie removed (same flags, Secure in production)",
+} as const;
+
+const EmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email().max(AUTH_LIMITS.emailMaxLength))
+  .openapi({
+    type: "string",
+    format: "email",
+    maxLength: AUTH_LIMITS.emailMaxLength,
+    example: "user01@example.com",
+  });
+
+const PasswordSchema = z.string().openapi({ example: "securepass123" });
 
 export const RegisterSchema = registry.register(
   "Register",
   z.object({
-    email: z.email().openapi({ example: "user01@example.com" }),
-    password: z.string().min(8).openapi({ example: "securepass123" }),
-    name: z.string().min(1).max(100).openapi({ example: "FirstName LastName" }),
+    email: EmailSchema,
+    password: PasswordSchema.min(AUTH_LIMITS.passwordMinLength)
+      .refine(
+        (password) => Buffer.byteLength(password, "utf8") <= AUTH_LIMITS.passwordMaxBytes,
+        `Password must be at most ${AUTH_LIMITS.passwordMaxBytes} bytes`,
+      )
+      .openapi({
+        description: `At least ${AUTH_LIMITS.passwordMinLength} characters and at most ${AUTH_LIMITS.passwordMaxBytes} bytes (bcrypt limit)`,
+      }),
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(AUTH_LIMITS.nameMaxLength)
+      .openapi({ example: "FirstName LastName" }),
   }),
 );
 
 export const LoginSchema = registry.register(
   "Login",
   z.object({
-    email: z.email().openapi({ example: "user01@example.com" }),
-    password: z.string().min(1).openapi({ example: "securepass123" }),
+    email: EmailSchema,
+    password: PasswordSchema.min(1),
   }),
 );
 
-// ====================== Response schemas ======================
+export const RefreshTokenBodySchema = registry.register(
+  "RefreshTokenBody",
+  z.object({
+    refreshToken: z.string().min(1).optional().openapi({ example: EXAMPLE.refreshToken }),
+  }),
+);
 
 export const UserSchema = registry.register(
   "User",
@@ -37,33 +91,22 @@ export const UserSchema = registry.register(
   }),
 );
 
+export const AuthUserSchema = registry.register(
+  "AuthUser",
+  UserSchema.omit({ createdAt: true }),
+);
+
 export const TokensSchema = registry.register(
   "Tokens",
   z.object({
-    accessToken: z.string().openapi({
-      example:
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiaWF0IjoxNjk5...",
-    }),
-    refreshToken: z.string().openapi({
-      example:
-        "b7a5d9c8a296022d69b264168629b27e7fa55ffe883d7b4653c9425fd1f3667b317637810c06ec7e",
-    }),
+    accessToken: z.string().openapi({ example: EXAMPLE.accessToken }),
+    refreshToken: z.string().openapi({ example: EXAMPLE.refreshToken }),
   }),
 );
 
 export const AuthResponseSchema = registry.register(
   "AuthResponse",
-  z.object({
-    accessToken: z.string().openapi({
-      example:
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiaWF0IjoxNjk5...",
-    }),
-    refreshToken: z.string().openapi({
-      example:
-        "b7a5d9c8a296022d69b264168629b27e7fa55ffe883d7b4653c9425fd1f3667b317637810c06ec7e",
-    }),
-    user: UserSchema.omit({ createdAt: true }),
-  }),
+  TokensSchema.extend({ user: AuthUserSchema }),
 );
 
 export const ErrorSchema = registry.register(
@@ -86,45 +129,71 @@ export const ValidationErrorSchema = registry.register(
   }),
 );
 
-// ====================== Types ======================
-
 export type RegisterBody = z.infer<typeof RegisterSchema>;
 export type LoginBody = z.infer<typeof LoginSchema>;
+export type RefreshTokenBody = z.infer<typeof RefreshTokenBodySchema>;
+export type AuthUser = z.infer<typeof AuthUserSchema>;
+export type Tokens = z.infer<typeof TokensSchema>;
+export type AuthResponse = z.infer<typeof AuthResponseSchema>;
 
-// ====================== Paths ======================
+const jsonResponse = <T extends z.ZodType>(description: string, schema: T) => ({
+  description,
+  content: { "application/json": { schema } },
+});
+
+const RateLimitHeaders = z.object({
+  RateLimit: z.string().openapi({ description: "draft-8 rate limit state", example: '"auth";r=0;t=900' }),
+  "RateLimit-Policy": z.string().openapi({ description: "draft-8 rate limit policy", example: '"auth";q=10;w=900' }),
+  "Retry-After": z.string().openapi({ description: "Seconds until the window resets", example: "900" }),
+});
+
+const AUTH_RESPONSE = {
+  validation: jsonResponse("Validation error", ValidationErrorSchema),
+  tooManyRequests: {
+    description: "Too many requests from this IP in the current window",
+    content: { "application/json": { schema: ErrorSchema, example: RATE_LIMIT_MESSAGE } },
+    headers: RateLimitHeaders,
+  },
+} as const;
+
+const RefreshCookieSchema = z.object({
+  [COOKIE.name]: z.string().min(1).optional().openapi({ description: COOKIE_DESCRIPTION.request }),
+});
+
+const RefreshCookieHeaders = z.object({
+  "Set-Cookie": z.string().openapi({ description: COOKIE_DESCRIPTION.set, example: EXAMPLE.setCookie }),
+});
+
+const ClearedCookieHeaders = z.object({
+  "Set-Cookie": z.string().openapi({ description: COOKIE_DESCRIPTION.cleared, example: EXAMPLE.clearedCookie }),
+});
+
+const MaybeClearedCookieHeaders = z.object({
+  "Set-Cookie": z.string().optional().openapi({
+    description: `${COOKIE_DESCRIPTION.cleared} when the session is gone; absent when only the request was rejected`,
+    example: EXAMPLE.clearedCookie,
+  }),
+});
 
 registry.registerPath({
   method: "post",
   path: "/api/auth/register",
   tags: ["Auth"],
   summary: "Register a new user",
-  description: "Creates a new user account and returns access + refresh tokens.",
+  description: "Creates a new user account and returns access + refresh tokens. Rate limited per IP.",
   request: {
     body: {
+      required: true,
       content: {
         "application/json": { schema: RegisterSchema },
       },
     },
   },
   responses: {
-    201: {
-      description: "User registered successfully",
-      content: {
-        "application/json": { schema: AuthResponseSchema },
-      },
-    },
-    409: {
-      description: "Email already taken",
-      content: {
-        "application/json": { schema: ErrorSchema },
-      },
-    },
-    422: {
-      description: "Validation error",
-      content: {
-        "application/json": { schema: ValidationErrorSchema },
-      },
-    },
+    201: { ...jsonResponse("User registered successfully", AuthResponseSchema), headers: RefreshCookieHeaders },
+    409: jsonResponse("Email already taken", ErrorSchema),
+    422: AUTH_RESPONSE.validation,
+    429: AUTH_RESPONSE.tooManyRequests,
   },
 });
 
@@ -133,33 +202,20 @@ registry.registerPath({
   path: "/api/auth/login",
   tags: ["Auth"],
   summary: "Login user",
-  description: "Authenticates user by email and returns access + refresh tokens.",
+  description: "Authenticates user by email and returns access + refresh tokens. Rate limited per IP.",
   request: {
     body: {
+      required: true,
       content: {
         "application/json": { schema: LoginSchema },
       },
     },
   },
   responses: {
-    200: {
-      description: "Login successful",
-      content: {
-        "application/json": { schema: AuthResponseSchema },
-      },
-    },
-    401: {
-      description: "Invalid credentials",
-      content: {
-        "application/json": { schema: ErrorSchema },
-      },
-    },
-    422: {
-      description: "Validation error",
-      content: {
-        "application/json": { schema: ValidationErrorSchema },
-      },
-    },
+    200: { ...jsonResponse("Login successful", AuthResponseSchema), headers: RefreshCookieHeaders },
+    401: jsonResponse("Invalid credentials", ErrorSchema),
+    422: AUTH_RESPONSE.validation,
+    429: AUTH_RESPONSE.tooManyRequests,
   },
 });
 
@@ -169,35 +225,26 @@ registry.registerPath({
   tags: ["Auth"],
   summary: "Refresh token pair",
   description:
-    "Issues a new token pair. Pass refreshToken in JSON body **or** via httpOnly cookie `refreshToken`. " +
-    "Both are supported. New refresh token is set as httpOnly cookie and also returned in the body.",
+    `Issues a new token pair. Pass refreshToken in JSON body **or** via httpOnly cookie \`${COOKIE.name}\`. ` +
+    "Both are supported; a token in the body takes precedence over the cookie. New refresh token is set as httpOnly cookie and also returned in the body. " +
+    "Each refresh token is single-use: presenting an already rotated token again returns 401, and if that " +
+    "happens outside a short grace window all sessions of the user are revoked (reuse detection). " +
+    "When the session is gone (unknown or expired token, or reuse detected after the grace window) the 401 also clears the cookie.",
   request: {
+    cookies: RefreshCookieSchema,
     body: {
       content: {
-        "application/json": {
-          schema: z.object({
-            refreshToken: z.string().optional().openapi({
-              example:
-                "b7a5d9c8a296022d69b264168629b27e7fa55ffe883d7b4653c9425fd1f3667b317637810c06ec7e",
-            }),
-          }),
-        },
+        "application/json": { schema: RefreshTokenBodySchema },
       },
     },
   },
   responses: {
-    200: {
-      description: "Tokens refreshed successfully",
-      content: {
-        "application/json": { schema: TokensSchema },
-      },
-    },
+    200: { ...jsonResponse("Tokens refreshed successfully", TokensSchema), headers: RefreshCookieHeaders },
     401: {
-      description: "Invalid or expired refresh token",
-      content: {
-        "application/json": { schema: ErrorSchema },
-      },
+      ...jsonResponse("Refresh token missing, invalid, expired, already used, or reuse detected", ErrorSchema),
+      headers: MaybeClearedCookieHeaders,
     },
+    422: AUTH_RESPONSE.validation,
   },
 });
 
@@ -207,25 +254,21 @@ registry.registerPath({
   tags: ["Auth"],
   summary: "Logout user",
   description:
-    "Invalidates the refresh token (from body or cookie) and clears the cookie.",
+    "Requires a valid access token. With a refresh token in the JSON body or the httpOnly cookie (body takes precedence), " +
+    "revokes that session only; without one, or when the presented token is not a live session of the user, " +
+    "revokes all sessions of the user. Clears the cookie either way.",
+  security: [{ bearerAuth: [] }],
   request: {
+    cookies: RefreshCookieSchema,
     body: {
       content: {
-        "application/json": {
-          schema: z.object({
-            refreshToken: z.string().optional().openapi({
-              example:
-                "b7a5d9c8a296022d69b264168629b27e7fa55ffe883d7b4653c9425fd1f3667b317637810c06ec7e",
-            }),
-          }),
-        },
+        "application/json": { schema: RefreshTokenBodySchema },
       },
     },
   },
   responses: {
-    204: {
-      description: "Logged out successfully",
-    },
+    204: { description: "Logged out successfully", headers: ClearedCookieHeaders },
+    401: jsonResponse("Missing or invalid access token", ErrorSchema),
+    422: AUTH_RESPONSE.validation,
   },
 });
-

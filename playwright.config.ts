@@ -1,9 +1,13 @@
 import { defineConfig } from "@playwright/test";
 import "dotenv/config";
 
-if (!process.env.TEST_DATABASE_URL) {
+const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+if (!testDatabaseUrl) {
   throw new Error("TEST_DATABASE_URL is not set");
 }
+
+const port = process.env.E2E_PORT || "3000";
+const baseURL = process.env.E2E_BASE_URL || `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -18,7 +22,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: process.env.E2E_BASE_URL || "http://localhost:3000",
+    baseURL,
     extraHTTPHeaders: {
       Accept: "application/json",
     },
@@ -27,17 +31,17 @@ export default defineConfig({
   // Start API before tests (on test DB)
   webServer: {
     command: "npx tsx index.ts",
-    url: "http://localhost:3000/api-docs",
+    url: `http://localhost:${port}/api-docs`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     env: {
       ...process.env,
-      DATABASE_URL: process.env.TEST_DATABASE_URL!,
+      DATABASE_URL: testDatabaseUrl,
       NODE_ENV: "test",
-      JWT_SECRET: process.env.JWT_SECRET || "e2e-test-jwt-secret",
-      PORT: "3000",
+      JWT_SECRET: process.env.JWT_SECRET || "e2e-test-jwt-secret-that-is-at-least-32-chars",
+      PORT: port,
     },
   },
 
-  globalSetup: "./tests/e2e/global-setup.ts",
+  globalSetup: "./tests/e2e/globalSetup.ts",
 });
