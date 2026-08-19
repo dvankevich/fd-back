@@ -17,7 +17,7 @@ import {
   CreateRecipeSchema,
   PaginationQuerySchema
 } from "../validators/recipes.validator.ts";
-import authenticate from "../middleware/authenticate.ts";
+import { authModule } from "../modules/auth/index.ts";
 import "../validators/recipes.validator.ts";
 
 const router = Router();
@@ -31,20 +31,20 @@ router.get(
 );
 
 // Private (статичні шляхи — ПЕРЕД /:id)
-router.get("/own", authenticate, validateQuery(PaginationQuerySchema), getOwnRecipes);
+router.get("/own", authModule.authenticate, validateQuery(PaginationQuerySchema), getOwnRecipes);
 router.get(
   "/favorites",
-  authenticate,
+  authModule.authenticate,
   validateQuery(PaginationQuerySchema),
   getFavoriteRecipes,
 );
 
-router.post("/", authenticate, uploadRecipeThumb, createRecipe);
+router.post("/", authModule.authenticate, uploadRecipeThumb, createRecipe);
 
-router.post("/:id/favorite", authenticate, addFavorite);
-router.delete("/:id/favorite", authenticate, removeFavorite);
+router.post("/:id/favorite", authModule.authenticate, addFavorite);
+router.delete("/:id/favorite", authModule.authenticate, removeFavorite);
 
 router.get("/:id", getRecipeById);
-router.delete("/:id", authenticate, deleteRecipe);
+router.delete("/:id", authModule.authenticate, deleteRecipe);
 
 export default router;

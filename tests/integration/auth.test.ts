@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import request from "supertest";
 import app from "../../app.ts";
 import prisma from "../../src/core/database/prisma.client.ts";
-import { AUTH_CONFIG } from "../../src/config/auth.ts";
+import { AUTH_CONFIG } from "../../src/modules/auth/auth.config.ts";
 import { TIME_MS } from "../../src/core/time.ts";
-import { AuthResponseSchema, TokensSchema } from "../../src/validators/auth.validator.ts";
+import { AuthResponseSchema, TokensSchema } from "../../src/modules/auth/api/view-dto/tokens.view-dto.ts";
 import {
   authUserShape,
   backdateRotation,

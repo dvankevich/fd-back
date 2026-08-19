@@ -54,7 +54,7 @@ import {
   followUser,
   unfollowUser,
 } from "../../src/controllers/users.controller.ts";
-import type { AuthenticatedRequest } from "../../src/types/auth.ts";
+import type { AuthenticatedRequest } from "../../src/modules/auth/api/authenticated-request.ts";
 
 // ---------- Helpers ----------
 

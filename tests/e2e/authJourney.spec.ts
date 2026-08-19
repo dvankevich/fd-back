@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext } from "@playwright/test";
-import { AUTH_CONFIG } from "../../src/config/auth.ts";
+import { AUTH_CONFIG } from "../../src/modules/auth/auth.config.ts";
 import { TIME_MS } from "../../src/core/time.ts";
 import prisma from "./db.ts";
 import {

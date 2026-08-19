@@ -1,14 +1,14 @@
 import type { APIRequestContext, APIResponse } from "@playwright/test";
 import { createHash } from "node:crypto";
 import prisma from "./db.ts";
+import type { LoginBody } from "../../src/modules/auth/api/input-dto/login.input-dto.ts";
+import type { RegisterBody } from "../../src/modules/auth/api/input-dto/register.input-dto.ts";
 import {
   AuthResponseSchema,
   TokensSchema,
   type AuthResponse,
-  type LoginBody,
-  type RegisterBody,
   type Tokens,
-} from "../../src/validators/auth.validator.ts";
+} from "../../src/modules/auth/api/view-dto/tokens.view-dto.ts";
 
 export const owner: RegisterBody = {
   email: "e2e_owner@example.com",

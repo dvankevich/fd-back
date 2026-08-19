@@ -2,7 +2,7 @@ import type { Response } from "express";
 import createHttpError from "http-errors";
 import fs from "fs/promises";
 import prisma from "../core/database/prisma.client.ts";
-import type { AuthenticatedRequest } from "../types/auth.ts";
+import type { AuthenticatedRequest } from "../modules/auth/api/authenticated-request.ts";
 import cloudinary from "../config/cloudinary.ts";
 import logger from "../core/logger.ts";
 

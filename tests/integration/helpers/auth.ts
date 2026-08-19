@@ -3,13 +3,13 @@ import type { Response } from "supertest";
 import { expect } from "vitest";
 import app from "../../../app.ts";
 import prisma from "../../../src/core/database/prisma.client.ts";
-import { authContainer } from "../../../src/services/auth.container.ts";
+import { authContainer } from "../../../src/modules/auth/auth.module.ts";
 import type { Optional } from "../../../src/core/types/common.ts";
+import type { RegisterBody } from "../../../src/modules/auth/api/input-dto/register.input-dto.ts";
 import {
   AuthResponseSchema,
   type AuthResponse,
-  type RegisterBody,
-} from "../../../src/validators/auth.validator.ts";
+} from "../../../src/modules/auth/api/view-dto/tokens.view-dto.ts";
 
 export const testUser: RegisterBody = {
   email: "test@example.com",

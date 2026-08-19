@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { registry } from "../core/openapi/registry.ts";
-import { ErrorSchema } from "./auth.validator.ts";
+import { ErrorSchema } from "../core/openapi/responses.ts";
 
 // ====================== Params ======================
 

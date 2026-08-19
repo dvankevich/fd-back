@@ -9,14 +9,14 @@ import {
   followUser,
   unfollowUser,
 } from "../controllers/users.controller.ts";
-import authenticate from "../middleware/authenticate.ts";
+import { authModule } from "../modules/auth/index.ts";
 import { validateParams } from "../core/http/validate.middleware.ts";
 import { UserIdParamSchema } from "../validators/users.validator.ts";
 import { uploadAvatar } from "../core/http/upload.middleware.ts";
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authModule.authenticate);
 
 router.get("/me", getCurrentUser as RequestHandler);
 router.get("/following", getFollowing as RequestHandler);
