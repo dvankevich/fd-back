@@ -11,7 +11,7 @@ const VALIDATION_FAILURE = {
 
 const ROOT_ERROR_KEY = "body";
 
-const errorDetails = (error: z.ZodError): ErrorDetails => {
+export const toErrorDetails = (error: z.ZodError): ErrorDetails => {
   const { formErrors, fieldErrors } = z.flattenError(error);
   return formErrors.length > 0 ? { [ROOT_ERROR_KEY]: formErrors, ...fieldErrors } : fieldErrors;
 };
@@ -22,7 +22,7 @@ export const validateBody =
     const result = schema.safeParse(req.body ?? {});
 
     if (!result.success) {
-      return next(VALIDATION_FAILURE.body(errorDetails(result.error)));
+      return next(VALIDATION_FAILURE.body(toErrorDetails(result.error)));
     }
 
     req.body = result.data;
@@ -35,7 +35,7 @@ export const validateParams =
     const result = schema.safeParse(req.params);
 
     if (!result.success) {
-      return next(VALIDATION_FAILURE.params(errorDetails(result.error)));
+      return next(VALIDATION_FAILURE.params(toErrorDetails(result.error)));
     }
 
     req.params = result.data;
@@ -48,7 +48,7 @@ export const validateQuery =
     const result = schema.safeParse(req.query);
 
     if (!result.success) {
-      return next(VALIDATION_FAILURE.query(errorDetails(result.error)));
+      return next(VALIDATION_FAILURE.query(toErrorDetails(result.error)));
     }
 
     res.locals.query = result.data;

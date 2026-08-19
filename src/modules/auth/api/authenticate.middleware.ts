@@ -1,5 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import type { ParamsDictionary } from "express-serve-static-core";
+import type { ParsedQs } from "qs";
 import type { AuthenticatorService } from "../application/authenticator.service.ts";
 import type { AuthenticatedRequest } from "./authenticated-request.ts";
 
@@ -14,15 +15,24 @@ export type AuthenticatedHandler<
   P = ParamsDictionary,
   ResBody = unknown,
   ReqBody = unknown,
-> = (req: AuthenticatedRequest<P, ResBody, ReqBody>, res: Response<ResBody>) => Promise<void>;
+  Locals extends Record<string, unknown> = Record<string, unknown>,
+> = (
+  req: AuthenticatedRequest<P, ResBody, ReqBody>,
+  res: Response<ResBody, Locals>,
+) => Promise<void>;
 
 const MISSING_AUTHENTICATE = "withUser() requires the authenticate middleware on the route";
 
 export const withUser =
-  <P = ParamsDictionary, ResBody = unknown, ReqBody = unknown>(
-    handler: AuthenticatedHandler<P, ResBody, ReqBody>,
-  ): RequestHandler<P, ResBody, ReqBody> =>
-  (req: Request<P, ResBody, ReqBody>, res: Response<ResBody>, next: NextFunction) => {
+  <
+    P = ParamsDictionary,
+    ResBody = unknown,
+    ReqBody = unknown,
+    Locals extends Record<string, unknown> = Record<string, unknown>,
+  >(
+    handler: AuthenticatedHandler<P, ResBody, ReqBody, Locals>,
+  ): RequestHandler<P, ResBody, ReqBody, ParsedQs, Locals> =>
+  (req: Request<P, ResBody, ReqBody>, res: Response<ResBody, Locals>, next: NextFunction) => {
     const { user } = req;
     if (!user) {
       next(new Error(MISSING_AUTHENTICATE));

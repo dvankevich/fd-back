@@ -16,7 +16,7 @@ import { categoriesModule } from "./src/modules/categories/index.ts";
 import { areasModule } from "./src/modules/areas/index.ts";
 import { ingredientsModule } from "./src/modules/ingredients/index.ts";
 import { testimonialsModule } from "./src/modules/testimonials/index.ts";
-import recipesRouter from "./src/routes/recipes.routes.ts";
+import { recipesModule } from "./src/modules/recipes/index.ts";
 
 import { apiReference } from "@scalar/express-api-reference";
 import { generateOpenApiDocument } from "./src/core/openapi/document.ts";
@@ -145,7 +145,7 @@ app.use(categoriesModule.path, categoriesModule.router);
 app.use(areasModule.path, areasModule.router);
 app.use(ingredientsModule.path, ingredientsModule.router);
 app.use(testimonialsModule.path, testimonialsModule.router);
-app.use("/api/recipes", recipesRouter);
+app.use(recipesModule.path, recipesModule.router);
 
 // 404 Not Found handler
 app.use((req: Request, res: Response) => {

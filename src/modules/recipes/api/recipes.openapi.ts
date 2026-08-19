@@ -1,151 +1,17 @@
 import { z } from "zod";
-import { registry } from "../core/openapi/registry.ts";
-import { ErrorSchema, ValidationErrorSchema } from "../core/openapi/responses.ts";
-
-// ====================== Request schemas ======================
-
-export const RecipesQuerySchema = registry.register(
-  "RecipesQuery",
-  z.object({
-    category: z.string().optional().openapi({ example: "Dessert" }),
-    area: z.string().optional().openapi({ example: "British" }),
-    ingredient: z
-      .string()
-      .optional()
-      .openapi({ example: "640c2dd963a319ea671e37aa" }),
-    page: z.coerce.number().int().positive().default(1).openapi({ example: 1 }),
-    limit: z.coerce
-      .number()
-      .int()
-      .positive()
-      .max(50)
-      .default(10)
-      .openapi({ example: 10 }),
-  }),
-);
-
-export const PaginationQuerySchema = registry.register(
-  "PaginationQuery",
-  z.object({
-    page: z.coerce.number().int().positive().default(1).openapi({ example: 1 }),
-    limit: z.coerce
-      .number()
-      .int()
-      .positive()
-      .max(50)
-      .default(10)
-      .openapi({ example: 10 }),
-  }),
-);
-
-export const RecipeIdParamSchema = registry.register(
-  "RecipeIdParam",
-  z.object({
-    id: z.string().min(1).openapi({ example: "6462a8f74c3d0ddd28897fcd" }),
-  }),
-);
-
-export const CreateRecipeSchema = registry.register(
-  "CreateRecipe",
-  z.object({
-    title: z.string().min(3).max(200).openapi({ example: "Battenberg Cake" }),
-    category: z.string().min(1).openapi({ example: "Dessert" }),
-    area: z.string().min(1).openapi({ example: "British" }),
-    instructions: z
-      .string()
-      .min(10)
-      .openapi({ example: "Heat oven to 180C..." }),
-    description: z
-      .string()
-      .max(500)
-      .optional()
-      .openapi({ example: "A classic British cake" }),
-    time: z.string().optional().openapi({ example: "60" }),
-    ingredients: z
-      .array(
-        z.object({
-          id: z.string().openapi({ example: "640c2dd963a319ea671e367e" }),
-          measure: z.string().min(1).openapi({ example: "175g" }),
-        }),
-      )
-      .min(1),
-  }),
-);
-
-// ====================== Response schemas ======================
-
-export const RecipeListItemSchema = registry.register(
-  "RecipeListItem",
-  z.object({
-    id: z.string().openapi({ example: "6462a8f74c3d0ddd28897fcd" }),
-    title: z.string().openapi({ example: "Battenberg Cake" }),
-    description: z.string().nullable().openapi({ example: "A classic cake" }),
-    thumb: z.string().nullable().openapi({ example: null }),
-    preview: z.string().nullable().openapi({ example: null }),
-    time: z.string().nullable().openapi({ example: "60" }),
-    category: z.object({
-      id: z.string().openapi({ example: "6462a6cd4c3d0ddd28897f8a" }),
-      name: z.string().openapi({ example: "Dessert" }),
-    }),
-    area: z.object({
-      id: z.string().openapi({ example: "6462a6f04c3d0ddd28897f9c" }),
-      name: z.string().openapi({ example: "British" }),
-    }),
-    owner: z.object({
-      id: z.string().openapi({ example: "64c8d958249fae54bae90bb9" }),
-      name: z.string().openapi({ example: "GoIT" }),
-      avatar: z.string().nullable().openapi({ example: null }),
-    }),
-  }),
-);
-
-export const RecipeDetailSchema = registry.register(
-  "RecipeDetail",
-  RecipeListItemSchema.extend({
-    instructions: z.string().openapi({ example: "Heat oven to 180C..." }),
-    ingredients: z.array(
-      z.object({
-        id: z.string().openapi({ example: "640c2dd963a319ea671e367e" }),
-        name: z.string().openapi({ example: "Butter" }),
-        measure: z.string().openapi({ example: "175g" }),
-        img: z.string().nullable().openapi({ example: null }),
-      }),
-    ),
-  }),
-);
-
-export const PopularRecipeSchema = registry.register(
-  "PopularRecipe",
-  RecipeListItemSchema.extend({
-    _count: z.object({
-      favorites: z.number().int().openapi({ example: 12 }),
-    }),
-  }),
-);
-
-export const PaginatedRecipesSchema = registry.register(
-  "PaginatedRecipes",
-  z.object({
-    data: z.array(RecipeListItemSchema),
-    total: z.number().int().openapi({ example: 42 }),
-    page: z.number().int().openapi({ example: 1 }),
-    limit: z.number().int().openapi({ example: 10 }),
-  }),
-);
-
-export const MessageSchema = registry.register(
-  "Message",
-  z.object({
-    message: z.string().openapi({ example: "Added to favorites" }),
-  }),
-);
-
-// ====================== Types ======================
-
-export type RecipesQuery = z.infer<typeof RecipesQuerySchema>;
-export type CreateRecipeBody = z.infer<typeof CreateRecipeSchema>;
-
-// ====================== Paths ======================
+import { registry } from "../../../core/openapi/registry.ts";
+import { ErrorSchema, ValidationErrorSchema } from "../../../core/openapi/responses.ts";
+import { CreateRecipeSchema } from "./input-dto/create-recipe.input-dto.ts";
+import { PaginationQuerySchema } from "./input-dto/pagination-query.input-dto.ts";
+import { RecipeIdParamSchema } from "./input-dto/recipe-id.param.input-dto.ts";
+import { RecipesQuerySchema } from "./input-dto/recipes-query.input-dto.ts";
+import { MessageSchema } from "./view-dto/message.view-dto.ts";
+import { PaginatedRecipesSchema } from "./view-dto/paginated-recipes.view-dto.ts";
+import {
+  CreatedRecipeSchema,
+  PopularRecipeSchema,
+  RecipeDetailSchema,
+} from "./view-dto/recipe.view-dto.ts";
 
 // --- Public ---
 
@@ -272,9 +138,7 @@ registry.registerPath({
       description: "Recipe created",
       content: {
         "application/json": {
-          schema: RecipeListItemSchema.extend({
-            instructions: z.string(),
-          }),
+          schema: CreatedRecipeSchema,
         },
       },
     },
