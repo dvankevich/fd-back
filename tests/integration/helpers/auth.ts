@@ -1,7 +1,7 @@
 import request from "supertest";
 import type { Response } from "supertest";
 import { expect } from "vitest";
-import app from "../../../app.ts";
+import app from "../../../src/app.ts";
 import prisma from "../../../src/core/database/prisma.client.ts";
 import { authContainer } from "../../../src/modules/auth/auth.module.ts";
 import type { Optional } from "../../../src/core/types/common.ts";

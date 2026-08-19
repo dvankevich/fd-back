@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
-import app from "../../app.ts";
+import app from "../../src/app.ts";
 import prisma from "../../src/core/database/prisma.client.ts";
 import { cleanAuthTables, registerSession, type Session } from "./helpers/auth.ts";
 
