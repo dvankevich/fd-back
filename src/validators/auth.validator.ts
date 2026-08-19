@@ -5,7 +5,12 @@ import { AUTH_LIMITS } from "../constants/auth.ts";
 import { TIME_MS } from "../constants/time.ts";
 import { RATE_LIMIT_MESSAGE } from "../middleware/rateLimit.ts";
 
-const REFRESH_TOKEN_EXAMPLE = "b7a5d9c8a296022d69b264168629b27e7fa55ffe883d7b4653c9425fd1f3667b317637810c06ec7e";
+const HEX_ALPHABET = "0123456789abcdef";
+const HEX_PER_BYTE = 2;
+
+const REFRESH_TOKEN_EXAMPLE = HEX_ALPHABET.repeat(
+  (AUTH_CONFIG.refreshToken.bytes * HEX_PER_BYTE) / HEX_ALPHABET.length,
+);
 
 const COOKIE = {
   name: AUTH_CONFIG.cookie.name,
