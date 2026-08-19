@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import express, { type RequestHandler } from "express";
-import createHttpError from "http-errors";
 import request from "supertest";
 import { withUser, createAuthenticate } from "./authenticate.middleware.ts";
+import { ConflictError, UnauthorizedError } from "../../../core/exceptions/errors.ts";
 import { errorHandler } from "../../../core/http/error-handler.middleware.ts";
 import type { AuthPayload } from "../domain/auth-payload.ts";
 
@@ -37,7 +37,7 @@ describe("createAuthenticate", () => {
   });
 
   it("should turn an authenticator rejection into the error response and stop the chain", async () => {
-    const authenticate = vi.fn().mockRejectedValue(createHttpError(401, "Authentication required"));
+    const authenticate = vi.fn().mockRejectedValue(new UnauthorizedError("Authentication required"));
     const next = vi.fn<RequestHandler>((_req, res) => {
       res.sendStatus(200);
     });
@@ -74,7 +74,7 @@ describe("withUser", () => {
 
   it("should forward a rejected handler to the error handler", async () => {
     const handler = vi.fn(async () => {
-      throw createHttpError(409, "boom");
+      throw new ConflictError("boom");
     });
 
     const res = await request(appWith(createAuthenticate(authenticatorResolving({ sub: userId })), withUser(handler)))

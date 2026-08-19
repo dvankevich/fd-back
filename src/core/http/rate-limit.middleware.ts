@@ -1,12 +1,13 @@
 import type { RequestHandler } from "express";
 import rateLimit from "express-rate-limit";
-import type { AuthConfig } from "../../modules/auth/auth.config.ts";
+
+export type RateLimitConfig = { windowMs: number; limit: number; enabled: boolean };
 
 export const RATE_LIMIT_MESSAGE = { error: "Too many requests, please try again later" } as const;
 
 const passThrough: RequestHandler = (_req, _res, next) => next();
 
-export const createAuthRateLimiter = ({ windowMs, limit, enabled }: AuthConfig["rateLimit"]): RequestHandler =>
+export const createRateLimiter = ({ windowMs, limit, enabled }: RateLimitConfig): RequestHandler =>
   enabled
     ? rateLimit({
         windowMs,

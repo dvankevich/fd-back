@@ -1,5 +1,5 @@
 import { Router, type RequestHandler } from "express";
-import { createAuthRateLimiter } from "../../../core/http/rate-limit.middleware.ts";
+import { createRateLimiter } from "../../../core/http/rate-limit.middleware.ts";
 import { validateBody } from "../../../core/http/validate.middleware.ts";
 import type { AuthConfig } from "../auth.config.ts";
 import type { AuthController } from "./auth.controller.ts";
@@ -19,11 +19,11 @@ export const createAuthRouter = ({ controller, authenticate, rateLimit }: AuthRo
 
   router.post(
     "/register",
-    createAuthRateLimiter(rateLimit),
+    createRateLimiter(rateLimit),
     validateBody(RegisterSchema),
     controller.register,
   );
-  router.post("/login", createAuthRateLimiter(rateLimit), validateBody(LoginSchema), controller.login);
+  router.post("/login", createRateLimiter(rateLimit), validateBody(LoginSchema), controller.login);
   router.post("/refresh", validateBody(RefreshTokenBodySchema), controller.refresh);
   router.post(
     "/logout",

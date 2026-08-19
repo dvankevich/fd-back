@@ -2,24 +2,24 @@ import { describe, it, expect } from "vitest";
 import express from "express";
 import request from "supertest";
 import { TIME_MS } from "../time.ts";
-import { createAuthRateLimiter } from "./rate-limit.middleware.ts";
+import { createRateLimiter } from "./rate-limit.middleware.ts";
 
 const appWith = (config: { windowMs: number; limit: number; enabled: boolean }) => {
   const app = express();
-  app.post("/", createAuthRateLimiter(config), (_req, res) => {
+  app.post("/", createRateLimiter(config), (_req, res) => {
     res.sendStatus(200);
   });
   return app;
 };
 
-describe("createAuthRateLimiter", () => {
+describe("createRateLimiter", () => {
   it("should give each created limiter its own budget", async () => {
     const config = { windowMs: TIME_MS.minute, limit: 1, enabled: true };
     const app = express();
-    app.post("/register", createAuthRateLimiter(config), (_req, res) => {
+    app.post("/register", createRateLimiter(config), (_req, res) => {
       res.sendStatus(200);
     });
-    app.post("/login", createAuthRateLimiter(config), (_req, res) => {
+    app.post("/login", createRateLimiter(config), (_req, res) => {
       res.sendStatus(200);
     });
 
