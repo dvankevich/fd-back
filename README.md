@@ -58,6 +58,12 @@ cp .env.example .env
 
 ### 3. Database setup
 
+Local PostgreSQL with Docker (creates the `foodies` and `foodies_test` databases matching `.env.example`):
+
+```bash
+docker compose up -d --wait
+```
+
 ```bash
 # Generate Prisma client
 npx prisma generate
@@ -87,6 +93,9 @@ The server will start at `http://localhost:3000` (or the port specified in `.env
 | `PORT`              | No       | Server port                                | `3000`                                       |
 | `NODE_ENV`          | No       | `development` / `production` / `test`      | `development`                                |
 | `ALLOWED_ORIGINS`   | No       | Comma-separated list of allowed origins    | `http://localhost:5173,https://myapp.com`    |
+| `AUTH_RATE_LIMIT_WINDOW_MS` | No | Rate limit window for register/login, ms  | `900000`                                     |
+| `AUTH_RATE_LIMIT_MAX` | No     | Requests per IP per window for register/login | `10`                                      |
+| `TRUST_PROXY_HOPS`  | No       | Reverse proxies in front of the app (Express `trust proxy`) | `1` behind nginx, `0` when exposed directly |
 
 > **Important:** In production always use a strong `JWT_SECRET` and restrict `ALLOWED_ORIGINS`.
 
@@ -107,7 +116,7 @@ npm run test:coverage      # tests with coverage
 | POST   | `/api/auth/register`  | Register a new user             | No   |
 | POST   | `/api/auth/login`     | Login                           | No   |
 | POST   | `/api/auth/refresh`   | Refresh token pair              | No*  |
-| POST   | `/api/auth/logout`    | Logout (invalidate refresh)     | No*  |
+| POST   | `/api/auth/logout`    | Logout (revoke the presented session; all sessions without a refresh token or with one that is no longer live) | Yes  |
 | GET    | `/api/auth/me`        | Get current user profile        | Yes  |
 
 \* Refresh token can be passed in the request body or via an httpOnly cookie.
@@ -232,8 +241,8 @@ Integration tests require a separate test database (`TEST_DATABASE_URL`).
 - Passwords are hashed with bcrypt.
 - Refresh tokens are stored in the database **only as SHA-256 hashes**.
 - Access tokens have a short lifetime.
-- On refresh the old token is immediately deleted (rotation).
+- On refresh the old token is marked as used (rotation); reusing it after a short grace window revokes all sessions of the user (used tokens are kept until they expire for this check).
 - Sensitive headers are redacted in logs.
-- Rate limiting is applied to the `/api/auth` group.
+- Rate limiting is applied to `/api/auth/register` and `/api/auth/login`.
 
 ---

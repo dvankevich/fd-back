@@ -60,6 +60,12 @@ cp .env.example .env
 
 ### 3. Підготовка бази даних
 
+Локальний PostgreSQL через Docker (створює бази `foodies` і `foodies_test`, що відповідають `.env.example`):
+
+```bash
+docker compose up -d --wait
+```
+
 ```bash
 # Генеруємо клієнт Prisma
 npx prisma generate
@@ -89,6 +95,9 @@ npm run dev
 | `PORT`              | Ні          | Порт сервера                              | `3000`                      |
 | `NODE_ENV`          | Ні          | `development` / `production` / `test`     | `development`               |
 | `ALLOWED_ORIGINS`   | Ні          | Список дозволених origins через кому      | `http://localhost:5173,https://myapp.com` |
+| `AUTH_RATE_LIMIT_WINDOW_MS` | Ні  | Вікно rate limit для register/login, мс   | `900000`                    |
+| `AUTH_RATE_LIMIT_MAX` | Ні        | Запитів з одного IP за вікно для register/login | `10`                   |
+| `TRUST_PROXY_HOPS`  | Ні          | Кількість reverse proxy перед застосунком (Express `trust proxy`) | `1` за nginx, `0` без проксі |
 
 > **Важливо:** У production обов’язково використовуй сильний `JWT_SECRET` і обмежуй `ALLOWED_ORIGINS`.
 
@@ -109,7 +118,7 @@ npm run test:coverage      # тести з покриттям
 | POST  | `/api/auth/register`  | Реєстрація                    | Ні   |
 | POST  | `/api/auth/login`     | Логін                         | Ні   |
 | POST  | `/api/auth/refresh`   | Оновлення пари токенів        | Ні*  |
-| POST  | `/api/auth/logout`    | Вихід (інвалідація refresh)   | Ні*  |
+| POST  | `/api/auth/logout`    | Вихід (відкликати надану сесію; всі сесії без refresh-токена або з уже неактивним) | Так  |
 | GET   | `/api/auth/me`        | Поточний користувач           | Так  |
 
 \* Refresh-токен можна передати в тілі запиту або через httpOnly cookie.
@@ -234,8 +243,8 @@ npm run test:unit
 - Паролі хешуються через bcrypt.
 - Refresh-токени зберігаються в БД **тільки як SHA-256 хеш**.
 - Access-токен має короткий час життя.
-- При refresh старий токен одразу видаляється (ротація).
+- При refresh старий токен позначається використаним (ротація); повторне використання після короткого grace-вікна відкликає всі сесії користувача (використані токени зберігаються до закінчення їх терміну дії для цієї перевірки).
 - Чутливі заголовки редкатяться в логах.
-- Rate limit стоїть на групі `/api/auth`.
+- Rate limit стоїть на `/api/auth/register` і `/api/auth/login`.
 
 ---

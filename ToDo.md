@@ -16,10 +16,10 @@ XSS (Cross-Site Scripting) дозволяє зловмиснику викону�
 
 ### Що варто зробити пізніше
 - [ ] Документувати рекомендації для клієнта: access token тримати тільки в пам’яті (не в localStorage)
-- [ ] Розглянути короткий TTL access token + silent refresh
-- [ ] Додати Content-Security-Policy (CSP) заголовки
-- [ ] (Опціонально) реалізувати refresh token family / reuse detection
-- [ ] Перевірити, що `httpOnly` cookie не доступний з JS навіть при XSS
+- [x] Розглянути короткий TTL access token + silent refresh (TTL 15 хв у `AUTH_CONFIG`; silent refresh на боці клієнта через `/api/auth/refresh`)
+- [x] Додати Content-Security-Policy (CSP) заголовки (Helmet CSP увімкнено в усіх середовищах; `/api-docs` і `/reference` мають власний послаблений CSP)
+- [x] (Опціонально) реалізувати refresh token family / reuse detection
+- [x] Перевірити, що `httpOnly` cookie не доступний з JS навіть при XSS
 
 ### Пріоритет
 Середній / низький на етапі boilerplate.  
