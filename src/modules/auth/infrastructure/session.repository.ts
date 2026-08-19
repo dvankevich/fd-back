@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "../../../../generated/prisma/client.ts";
+import { Prisma, type PrismaClient } from "../../../core/database/prisma.ts";
 import { TIME_MS } from "../../../core/time.ts";
 import type { Nullable } from "../../../core/types/common.ts";
 import type { NewSession, SessionRepository, SessionWriter, StoredSession } from "../domain/auth.ports.ts";
