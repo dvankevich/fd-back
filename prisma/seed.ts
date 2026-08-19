@@ -69,12 +69,29 @@ async function main() {
   console.log(`✓ Users: ${users.length}`);
 
   // 2. Categories
-  const categories = readCsv<{ id: string; name: string }>("categories.csv");
+  const categories = readCsv<{
+    id: string;
+    name: string;
+    image: string;
+    description: string;
+  }>("categories.csv");
 
-  await prisma.category.createMany({
-    data: categories.map((c) => ({ id: c.id, name: c.name })),
-    skipDuplicates: true,
-  });
+  for (const c of categories) {
+    await prisma.category.upsert({
+      where: { id: c.id },
+      update: {
+        name: c.name,
+        image: emptyToNull(c.image),
+        description: emptyToNull(c.description),
+      },
+      create: {
+        id: c.id,
+        name: c.name,
+        image: emptyToNull(c.image),
+        description: emptyToNull(c.description),
+      },
+    });
+  }
   console.log(`✓ Categories: ${categories.length}`);
 
   // 3. Areas
@@ -203,4 +220,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-  
