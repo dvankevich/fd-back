@@ -20,27 +20,50 @@ GET {{baseUrl}}/api/recipes?category=Dessert&page=1&limit=10
 GET {{baseUrl}}/api/recipes?area=British&ingredient=640c2dd963a319ea671e367e
 
 ### Popular recipes (paginated)
-GET {{baseUrl}}/api/recipes/popular?page=1&limit=10
+GET {{baseUrl}}/api/recipes/popular?page=1&limit=4
 
 ### Recipe details
 GET {{baseUrl}}/api/recipes/6462a8f74c3d0ddd28898082
 
-### Create recipe (auth)
+### Create recipe (multipart + thumb)
 POST {{baseUrl}}/api/recipes
 Authorization: Bearer {{accessToken}}
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=----Boundary
 
-{
-  "title": "My Test Cake",
-  "category": "Dessert",
-  "area": "British",
-  "instructions": "Mix everything and bake for 30 minutes at 180C.",
-  "description": "Simple test recipe",
-  "time": "30",
-  "ingredients": [
-    { "id": "640c2dd963a319ea671e367e", "measure": "200g" }
-  ]
-}
+------Boundary
+Content-Disposition: form-data; name="title"
+
+My Test Cake
+------Boundary
+Content-Disposition: form-data; name="category"
+
+Dessert
+------Boundary
+Content-Disposition: form-data; name="area"
+
+British
+------Boundary
+Content-Disposition: form-data; name="instructions"
+
+Mix everything and bake for 30 minutes at 180C.
+------Boundary
+Content-Disposition: form-data; name="description"
+
+Simple test recipe
+------Boundary
+Content-Disposition: form-data; name="time"
+
+30
+------Boundary
+Content-Disposition: form-data; name="ingredients"
+
+[{"id":"640c2dd963a319ea671e367e","measure":"200g"}]
+------Boundary
+Content-Disposition: form-data; name="thumb"; filename="cake.jpg"
+Content-Type: image/jpeg
+
+< ./cake.jpg
+------Boundary--
 
 ### My recipes
 GET {{baseUrl}}/api/recipes/own

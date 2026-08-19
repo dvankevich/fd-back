@@ -59,3 +59,23 @@ export const uploadAvatar = (
   });
 };
 
+export const uploadRecipeThumb = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  upload.single("thumb")(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return next(createHttpError(400, "File too large (max 5MB)"));
+      }
+      return next(createHttpError(400, err.message));
+    }
+
+    if (err) {
+      return next(createHttpError(400, err.message));
+    }
+
+    next();
+  });
+};
