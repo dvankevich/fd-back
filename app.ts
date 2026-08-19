@@ -12,10 +12,10 @@ import logger from "./src/core/logger.ts";
 
 import authRouter from "./src/routes/auth.routes.ts";
 import usersRouter from "./src/routes/users.routes.ts";
-import categoriesRouter from "./src/routes/categories.routes.ts";
-import areasRouter from "./src/routes/areas.routes.ts";
-import ingredientsRouter from "./src/routes/ingredients.routes.ts";
-import testimonialsRouter from "./src/routes/testimonials.routes.ts";
+import { categoriesModule } from "./src/modules/categories/index.ts";
+import { areasModule } from "./src/modules/areas/index.ts";
+import { ingredientsModule } from "./src/modules/ingredients/index.ts";
+import { testimonialsModule } from "./src/modules/testimonials/index.ts";
 import recipesRouter from "./src/routes/recipes.routes.ts";
 
 import { apiReference } from "@scalar/express-api-reference";
@@ -141,10 +141,10 @@ app.use(
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
-app.use("/api/categories", categoriesRouter);
-app.use("/api/areas", areasRouter);
-app.use("/api/ingredients", ingredientsRouter);
-app.use("/api/testimonials", testimonialsRouter);
+app.use(categoriesModule.path, categoriesModule.router);
+app.use(areasModule.path, areasModule.router);
+app.use(ingredientsModule.path, ingredientsModule.router);
+app.use(testimonialsModule.path, testimonialsModule.router);
 app.use("/api/recipes", recipesRouter);
 
 // 404 Not Found handler
