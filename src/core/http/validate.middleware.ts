@@ -3,10 +3,16 @@ import type { Request, Response, NextFunction } from "express";
 import type { ParamsDictionary } from "express-serve-static-core";
 import { BadRequestError, ValidationError, type ErrorDetails } from "../exceptions/errors.ts";
 
+export const VALIDATION_MESSAGE = {
+  body: "Validation failed",
+  params: "Invalid parameters",
+  query: "Invalid query parameters",
+} as const;
+
 const VALIDATION_FAILURE = {
-  body: (details: ErrorDetails) => new ValidationError("Validation failed", details),
-  params: (details: ErrorDetails) => new BadRequestError("Invalid parameters", details),
-  query: (details: ErrorDetails) => new BadRequestError("Invalid query parameters", details),
+  body: (details: ErrorDetails) => new ValidationError(VALIDATION_MESSAGE.body, details),
+  params: (details: ErrorDetails) => new BadRequestError(VALIDATION_MESSAGE.params, details),
+  query: (details: ErrorDetails) => new BadRequestError(VALIDATION_MESSAGE.query, details),
 } as const;
 
 const ROOT_ERROR_KEY = "body";

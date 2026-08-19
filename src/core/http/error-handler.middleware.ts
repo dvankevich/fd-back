@@ -6,10 +6,11 @@ import { isArrayOf, isNonEmptyString, isNumber, isRecord, isString } from "../gu
 import logger from "../logger.ts";
 import type { Optional } from "../types/common.ts";
 import { HTTP_STATUS } from "./http-status.ts";
+import { VALIDATION_MESSAGE } from "./validate.middleware.ts";
 
-const BODY_PARSE_FAILURE = {
+export const BODY_PARSE_FAILURE = {
   type: "entity.parse.failed",
-  message: "Validation failed",
+  message: VALIDATION_MESSAGE.body,
   details: { body: ["Invalid JSON format in request body"] },
 } as const;
 

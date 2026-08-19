@@ -10,11 +10,11 @@ import type {
 export const CurrentUserSchema = registry.register(
   "CurrentUser",
   z.object({
-    id: z.string().openapi({ example: "64c8d958249fae54bae90bb9" }),
+    id: z.string().openapi({ example: "clx8p2k1v0000qz7h9m4n2t5b" }),
     name: z.string().openapi({ example: "Olena Kravets" }),
     email: z.email().openapi({ example: "olena@example.com" }),
     avatar: z.string().nullable().openapi({
-      example: "https://res.cloudinary.com/.../avatar.jpg",
+      example: "https://res.cloudinary.com/dvc0lg6q7/image/upload/v1787152924/foodies/avatars/user_clx8p2k1v0000qz7h9m4n2t5b.webp",
     }),
     createdRecipesCount: z.number().int().nonnegative().openapi({ example: 12 }),
     favoritesCount: z.number().int().nonnegative().openapi({ example: 5 }),
@@ -26,11 +26,11 @@ export const CurrentUserSchema = registry.register(
 export const PublicUserSchema = registry.register(
   "PublicUser",
   z.object({
-    id: z.string().openapi({ example: "64c8d958249fae54bae90bb9" }),
+    id: z.string().openapi({ example: "clx8p2k1v0000qz7h9m4n2t5b" }),
     name: z.string().openapi({ example: "Olena Kravets" }),
     email: z.email().openapi({ example: "olena@example.com" }),
     avatar: z.string().nullable().openapi({
-      example: "https://res.cloudinary.com/.../avatar.jpg",
+      example: "https://res.cloudinary.com/dvc0lg6q7/image/upload/v1787152924/foodies/avatars/user_clx8p2k1v0000qz7h9m4n2t5b.webp",
     }),
     createdRecipesCount: z.number().int().nonnegative().openapi({ example: 12 }),
     followersCount: z.number().int().nonnegative().openapi({ example: 34 }),
@@ -40,7 +40,7 @@ export const PublicUserSchema = registry.register(
 export const UserListItemSchema = registry.register(
   "UserListItem",
   z.object({
-    id: z.string().openapi({ example: "64c8d958249fae54bae90bb9" }),
+    id: z.string().openapi({ example: "clx8p2k1v0000qz7h9m4n2t5b" }),
     name: z.string().openapi({ example: "Olena Kravets" }),
     avatar: z.string().nullable().openapi({ example: null }),
   }) satisfies z.ZodType<UserListItemView>,

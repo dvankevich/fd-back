@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { BadRequestError } from "../exceptions/errors.ts";
+import { UPLOAD_ERROR, UPLOAD_LIMITS } from "./upload.limits.ts";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 
@@ -11,13 +12,6 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 const BYTES_PER_MEGABYTE = 1024 * 1024;
-
-export const UPLOAD_LIMITS = { fileSizeMb: 5 } as const;
-
-const UPLOAD_ERROR = {
-  tooLarge: `File too large (max ${UPLOAD_LIMITS.fileSizeMb}MB)`,
-  notAnImage: "Only image files are allowed",
-} as const;
 
 const RANDOM_SUFFIX_RANGE = 1e9;
 

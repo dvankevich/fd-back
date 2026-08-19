@@ -3,8 +3,9 @@ import { BadRequestError } from "../../../core/exceptions/errors.ts";
 import { isNumber, isRecord, isString } from "../../../core/guards.ts";
 import { HTTP_STATUS } from "../../../core/http/http-status.ts";
 import type { ImageStorage, UploadImageInput, UploadedImage } from "../domain/image-storage.port.ts";
+import { MEDIA_MESSAGE } from "../domain/media.messages.ts";
 
-const INVALID_IMAGE = { message: "Invalid image file", marker: "invalid image" } as const;
+const INVALID_IMAGE = { message: MEDIA_MESSAGE.invalidImage, marker: "invalid image" } as const;
 
 export type ImageUploader = {
   upload(path: string, options: UploadApiOptions): Promise<UploadApiResponse>;

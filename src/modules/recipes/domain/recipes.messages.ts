@@ -4,6 +4,7 @@ export const RECIPES_MESSAGE = {
   categoryNotFound: "Category not found",
   areaNotFound: "Area not found",
   unknownIngredients: "One or more ingredients not found",
+  invalidIngredientsJson: "Invalid JSON format",
   notOwner: "You can delete only your own recipes",
   alreadyFavorite: "Recipe already in favorites",
   notInFavorites: "Recipe not found in favorites",
