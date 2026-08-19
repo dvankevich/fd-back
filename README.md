@@ -163,32 +163,42 @@ These endpoints are intended for the platform (Kubernetes, Docker, Railway, Rend
 
 ## Project Structure (simplified)
 
+The code is organised by feature. Every resource is a module under
+`src/modules/` and holds its own layers, so a change to recipes stays inside
+the recipes folder.
+
 ```
 ├── prisma/
 │   ├── schema.prisma
-│   ├── migrations/
-│   └── client.ts
+│   └── migrations/
+├── requests/                     # .http files for manual checks
 ├── src/
-│   ├── constants/
-│   ├── controllers/
-│   │   └── auth.controller.ts
-│   ├── middleware/
-│   │   ├── authenticate.ts
-│   │   ├── errorHandler.ts
-│   │   └── validate.ts
-│   ├── routes/
-│   │   └── auth.routes.ts
-│   ├── services/
-│   │   └── auth.ts
-│   ├── validators/
-│   │   └── auth.validator.ts
-│   ├── logger.ts
-│   └── openapi.ts
-├── tests/
-├── app.ts                 # Express app + health checks
-├── index.ts               # Entry point + graceful shutdown
+│   ├── app.ts                    # middleware, module mounting, 404, error handler
+│   ├── app.module.ts             # the modules the app mounts
+│   ├── bootstrap.ts              # listen + graceful shutdown
+│   ├── config/env.ts             # validated environment
+│   ├── core/                     # shared: http, database, openapi, errors, logger
+│   └── modules/
+│       ├── auth/
+│       │   ├── api/              # controller, router, dto schemas, openapi paths
+│       │   ├── application/      # use cases
+│       │   ├── domain/           # types, ports, rules, messages
+│       │   ├── infrastructure/   # prisma, bcrypt, jwt
+│       │   ├── auth.config.ts
+│       │   ├── auth.module.ts    # wiring, exports { path, router }
+│       │   └── index.ts          # what other modules may import
+│       ├── users/ recipes/ categories/ areas/ ingredients/ testimonials/
+│       ├── media/                # image storage behind a port
+│       └── health/               # /healthz and /readyz
+├── tests/                        # integration and e2e; unit tests sit next to the code
+├── index.ts                      # entry point
 └── package.json
 ```
+
+The layers point inward: `api` speaks HTTP, `application` holds the use cases,
+`domain` holds the types and the rules, `infrastructure` holds prisma and the
+external services. A module reaches another module only through its
+`index.ts`.
 
 ## Deployment
 

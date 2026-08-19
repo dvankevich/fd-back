@@ -165,32 +165,40 @@ Refresh-токен також встановлюється в httpOnly cookie.
 
 ## Структура проєкту (спрощена)
 
+Код організований за фічами. Кожен ресурс — це модуль у `src/modules/` зі
+своїми шарами, тому зміна в рецептах залишається всередині папки рецептів.
+
 ```
 ├── prisma/
 │   ├── schema.prisma
-│   ├── migrations/
-│   └── client.ts
+│   └── migrations/
+├── requests/                     # .http файли для ручних перевірок
 ├── src/
-│   ├── constants/
-│   ├── controllers/
-│   │   └── auth.controller.ts
-│   ├── middleware/
-│   │   ├── authenticate.ts
-│   │   ├── errorHandler.ts
-│   │   └── validate.ts
-│   ├── routes/
-│   │   └── auth.routes.ts
-│   ├── services/
-│   │   └── auth.ts
-│   ├── validators/
-│   │   └── auth.validator.ts
-│   ├── logger.ts
-│   └── openapi.ts
-├── tests/
-├── app.ts                 # Express app + health checks
-├── index.ts               # Entry point + graceful shutdown
+│   ├── app.ts                    # middleware, підключення модулів, 404, обробник помилок
+│   ├── app.module.ts             # перелік модулів застосунку
+│   ├── bootstrap.ts              # listen + graceful shutdown
+│   ├── config/env.ts             # перевірене оточення
+│   ├── core/                     # спільне: http, база, openapi, помилки, логер
+│   └── modules/
+│       ├── auth/
+│       │   ├── api/              # контролер, роутер, dto-схеми, шляхи openapi
+│       │   ├── application/      # сценарії використання
+│       │   ├── domain/           # типи, порти, правила, повідомлення
+│       │   ├── infrastructure/   # prisma, bcrypt, jwt
+│       │   ├── auth.config.ts
+│       │   ├── auth.module.ts    # складання, віддає { path, router }
+│       │   └── index.ts          # те, що можуть імпортувати інші модулі
+│       ├── users/ recipes/ categories/ areas/ ingredients/ testimonials/
+│       ├── media/                # сховище зображень за портом
+│       └── health/               # /healthz та /readyz
+├── tests/                        # інтеграційні та e2e; юніт-тести лежать поруч із кодом
+├── index.ts                      # точка входу
 └── package.json
 ```
+
+Шари дивляться всередину: `api` говорить по HTTP, `application` тримає
+сценарії, `domain` — типи й правила, `infrastructure` — prisma та зовнішні
+сервіси. Один модуль звертається до іншого лише через його `index.ts`.
 
 ## Розгортання
 

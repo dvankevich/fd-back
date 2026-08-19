@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
-import prisma from "../../prisma/client.ts";
-import { TIME_MS } from "../../src/constants/time.ts";
-import type { NewSession } from "../../src/services/auth.ports.ts";
-import { PrismaSessionRepository } from "../../src/services/session.repository.ts";
+import prisma from "../../src/core/database/prisma.client.ts";
+import { TIME_MS } from "../../src/core/time.ts";
+import type { NewSession } from "../../src/modules/auth/domain/auth.ports.ts";
+import { PrismaSessionRepository } from "../../src/modules/auth/infrastructure/session.repository.ts";
 import { cleanAuthTables } from "./helpers/auth.ts";
 
 const repository = new PrismaSessionRepository(prisma);
