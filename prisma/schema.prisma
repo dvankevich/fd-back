@@ -44,9 +44,11 @@ model RefreshToken {
 // ====================== Reference data ======================
 
 model Category {
-  id      String   @id
-  name    String   @unique
-  recipes Recipe[]
+  id          String   @id
+  name        String   @unique
+  image       String?
+  description String?
+  recipes     Recipe[]
 }
 
 model Area {
