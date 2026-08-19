@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { AUTH_CONFIG } from "../../src/config/auth.ts";
-import { TIME_MS } from "../../src/constants/time.ts";
+import { TIME_MS } from "../../src/core/time.ts";
 import { AuthenticatorService } from "../../src/services/authenticator.service.ts";
 import { TokenService } from "../../src/services/token.service.ts";
 import { extractBearerToken } from "../../src/utils/bearer.ts";
-import type { Optional } from "../../src/types/common.ts";
-import { systemClock } from "../../src/utils/clock.ts";
+import type { Optional } from "../../src/core/types/common.ts";
+import { systemClock } from "../../src/core/clock.ts";
 
 const userId = "clx1234567890abcdefghij";
 const otherSecret = "another-secret-that-is-at-least-32-chars";

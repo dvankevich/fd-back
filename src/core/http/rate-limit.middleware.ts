@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import rateLimit from "express-rate-limit";
-import type { AuthConfig } from "../config/auth.ts";
+import type { AuthConfig } from "../../config/auth.ts";
 
 export const RATE_LIMIT_MESSAGE = { error: "Too many requests, please try again later" } as const;
 

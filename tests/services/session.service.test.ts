@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { AUTH_CONFIG } from "../../src/config/auth.ts";
-import { TIME_MS } from "../../src/constants/time.ts";
+import { TIME_MS } from "../../src/core/time.ts";
 import type {
   NewSession,
   SessionRepository,
@@ -14,7 +14,7 @@ import {
   isSessionEnded,
 } from "../../src/services/session.service.ts";
 import { TokenService } from "../../src/services/token.service.ts";
-import { systemClock } from "../../src/utils/clock.ts";
+import { systemClock } from "../../src/core/clock.ts";
 
 const SECRET = "unit-test-secret-that-is-at-least-32-chars";
 const userId = "clx1234567890abcdefghij";

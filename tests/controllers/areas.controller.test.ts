@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Request, Response } from "express";
 import { getAreas } from "../../src/controllers/areas.controller.ts";
-import prisma from "../../prisma/client.ts";
+import prisma from "../../src/core/database/prisma.client.ts";
 
-vi.mock("../../prisma/client.ts", () => ({
+vi.mock("../../src/core/database/prisma.client.ts", () => ({
   default: {
     area: {
       findMany: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock("../../prisma/client.ts", () => ({
   },
 }));
 
-vi.mock("../../src/logger.ts", () => ({
+vi.mock("../../src/core/logger.ts", () => ({
   default: {
     debug: vi.fn(),
     info: vi.fn(),

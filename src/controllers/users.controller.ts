@@ -1,10 +1,10 @@
 import type { Response } from "express";
 import createHttpError from "http-errors";
 import fs from "fs/promises";
-import prisma from "../../prisma/client.ts";
+import prisma from "../core/database/prisma.client.ts";
 import type { AuthenticatedRequest } from "../types/auth.ts";
 import cloudinary from "../config/cloudinary.ts";
-import logger from "../logger.ts";
+import logger from "../core/logger.ts";
 
 // ====================== GET /api/users/me ======================
 

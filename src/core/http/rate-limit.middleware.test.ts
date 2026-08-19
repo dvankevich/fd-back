@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import express from "express";
 import request from "supertest";
-import { TIME_MS } from "../../src/constants/time.ts";
-import { createAuthRateLimiter } from "../../src/middleware/rateLimit.ts";
+import { TIME_MS } from "../time.ts";
+import { createAuthRateLimiter } from "./rate-limit.middleware.ts";
 
 const appWith = (config: { windowMs: number; limit: number; enabled: boolean }) => {
   const app = express();

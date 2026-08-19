@@ -1,8 +1,8 @@
 import createHttpError from "http-errors";
 import type { AuthConfig } from "../config/auth.ts";
-import { HTTP_STATUS } from "../constants/http.ts";
-import logger from "../logger.ts";
-import type { Clock, ValueOf } from "../types/common.ts";
+import { HTTP_STATUS } from "../core/http/http-status.ts";
+import logger from "../core/logger.ts";
+import type { Clock, ValueOf } from "../core/types/common.ts";
 import type {
   RotatedSession,
   SessionRepository,

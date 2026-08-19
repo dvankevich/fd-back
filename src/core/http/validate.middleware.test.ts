@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import express from "express";
 import request from "supertest";
 import { z } from "zod";
-import { errorHandler } from "../../src/middleware/errorHandler.ts";
-import { validateBody } from "../../src/middleware/validate.ts";
+import { errorHandler } from "./error-handler.middleware.ts";
+import { validateBody } from "./validate.middleware.ts";
 
 const BodySchema = z.object({ email: z.email(), password: z.string().min(8) });
 

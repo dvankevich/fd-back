@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import type { AuthConfig } from "../config/auth.ts";
-import type { Optional } from "../types/common.ts";
+import type { Optional } from "../core/types/common.ts";
 import type { PasswordHasher } from "./auth.ports.ts";
 
 const DECOY = { password: "decoy-password-for-constant-time-login" } as const;

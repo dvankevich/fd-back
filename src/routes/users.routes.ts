@@ -10,9 +10,9 @@ import {
   unfollowUser,
 } from "../controllers/users.controller.ts";
 import authenticate from "../middleware/authenticate.ts";
-import { validateParams } from "../middleware/validate.ts";
+import { validateParams } from "../core/http/validate.middleware.ts";
 import { UserIdParamSchema } from "../validators/users.validator.ts";
-import { uploadAvatar } from "../middleware/upload.ts";
+import { uploadAvatar } from "../core/http/upload.middleware.ts";
 
 const router = Router();
 

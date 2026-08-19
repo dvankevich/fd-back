@@ -6,8 +6,8 @@ import {
   logout,
 } from "../controllers/auth.controller.ts";
 import { AUTH_CONFIG } from "../config/auth.ts";
-import { createAuthRateLimiter } from "../middleware/rateLimit.ts";
-import { validateBody } from "../middleware/validate.ts";
+import { createAuthRateLimiter } from "../core/http/rate-limit.middleware.ts";
+import { validateBody } from "../core/http/validate.middleware.ts";
 import {
   RegisterSchema,
   LoginSchema,

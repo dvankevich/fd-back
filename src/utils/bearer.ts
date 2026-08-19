@@ -1,4 +1,4 @@
-import type { Optional } from "../types/common.ts";
+import type { Optional } from "../core/types/common.ts";
 
 const BEARER_HEADER = /^Bearer\s+(\S+)$/i;
 

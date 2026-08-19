@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isBoolean, isDefined, isNonEmptyString, isNumber, isRecord, isString } from "../../src/utils/guards.ts";
+import { isBoolean, isDefined, isNonEmptyString, isNumber, isRecord, isString } from "./guards.ts";
 
 describe("guards", () => {
   it.each([

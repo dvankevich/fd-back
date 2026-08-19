@@ -1,6 +1,6 @@
 import type { CookieOptions } from "express";
 import type { Algorithm } from "jsonwebtoken";
-import { TIME_MS } from "../constants/time.ts";
+import { TIME_MS } from "../core/time.ts";
 import { env } from "./env.ts";
 
 export type AuthConfig = {

@@ -3,7 +3,7 @@ import express, { type RequestHandler } from "express";
 import createHttpError from "http-errors";
 import request from "supertest";
 import { withUser, createAuthenticate } from "../../src/middleware/authenticate.ts";
-import { errorHandler } from "../../src/middleware/errorHandler.ts";
+import { errorHandler } from "../../src/core/http/error-handler.middleware.ts";
 import type { AuthPayload } from "../../src/types/auth.ts";
 
 const userId = "clx1234567890abcdefghij";

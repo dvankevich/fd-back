@@ -10,8 +10,8 @@ import {
   addFavorite,
   removeFavorite,
 } from "../controllers/recipes.controller.ts";
-import { validateQuery } from "../middleware/validate.ts";
-import { uploadRecipeThumb } from "../middleware/upload.ts";
+import { validateQuery } from "../core/http/validate.middleware.ts";
+import { uploadRecipeThumb } from "../core/http/upload.middleware.ts";
 import {
   RecipesQuerySchema,
   CreateRecipeSchema,

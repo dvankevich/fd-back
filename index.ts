@@ -1,8 +1,8 @@
 import "dotenv/config";
 import { env } from "./src/config/env.ts";
 import app from "./app.ts";
-import logger from "./src/logger.ts";
-import prisma from "./prisma/client.ts";
+import logger from "./src/core/logger.ts";
+import prisma from "./src/core/database/prisma.client.ts";
 
 const PORT = env.PORT || 3000;
 

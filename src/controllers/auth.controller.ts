@@ -1,14 +1,14 @@
 import createHttpError from "http-errors";
 import type { Request, Response } from "express";
 import type { ParamsDictionary } from "express-serve-static-core";
-import prisma from "../../prisma/client.ts";
+import prisma from "../core/database/prisma.client.ts";
 import type { Prisma, User } from "../../generated/prisma/client.ts";
-import { HTTP_STATUS } from "../constants/http.ts";
+import { HTTP_STATUS } from "../core/http/http-status.ts";
 import type { AuthenticatedHandler } from "../middleware/authenticate.ts";
 import { authContainer } from "../services/auth.container.ts";
 import type { TokenPair } from "../services/auth.ports.ts";
 import { isSessionEnded } from "../services/session.service.ts";
-import { isUniqueViolation } from "../utils/prismaErrors.ts";
+import { isUniqueViolation } from "../core/database/prisma-errors.ts";
 import type {
   AuthResponse,
   AuthUser,
@@ -17,7 +17,7 @@ import type {
   RegisterBody,
   Tokens,
 } from "../validators/auth.validator.ts";
-import logger from "../logger.ts";
+import logger from "../core/logger.ts";
 
 const { passwordService, sessionService, refreshCookie } = authContainer;
 

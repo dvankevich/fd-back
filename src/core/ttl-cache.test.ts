@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { TtlCache } from "../../src/utils/ttlCache.ts";
+import { TtlCache } from "./ttl-cache.ts";
 
 const createClock = (start = 0) => {
   let current = start;

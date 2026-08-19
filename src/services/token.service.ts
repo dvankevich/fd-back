@@ -1,10 +1,10 @@
 import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 import type { AuthConfig } from "../config/auth.ts";
-import { TIME_MS } from "../constants/time.ts";
+import { TIME_MS } from "../core/time.ts";
 import type { AuthPayload } from "../types/auth.ts";
-import type { Clock, Nullable } from "../types/common.ts";
-import { isNonEmptyString, isString } from "../utils/guards.ts";
+import type { Clock, Nullable } from "../core/types/common.ts";
+import { isNonEmptyString, isString } from "../core/guards.ts";
 import type { TokenIssuer } from "./auth.ports.ts";
 
 type TokenServiceOptions = Pick<AuthConfig, "accessToken" | "refreshToken"> & { clock: Clock };

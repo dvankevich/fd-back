@@ -1,5 +1,5 @@
 import type { AuthPayload } from "../types/auth.ts";
-import type { Nullable, Optional } from "../types/common.ts";
+import type { Nullable, Optional } from "../core/types/common.ts";
 
 export type TokenPair = { accessToken: string; refreshToken: string };
 

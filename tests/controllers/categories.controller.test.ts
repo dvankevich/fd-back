@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Request, Response } from "express";
 import { getCategories } from "../../src/controllers/categories.controller.ts";
-import prisma from "../../prisma/client.ts";
+import prisma from "../../src/core/database/prisma.client.ts";
 
 // Mock Prisma
-vi.mock("../../prisma/client.ts", () => ({
+vi.mock("../../src/core/database/prisma.client.ts", () => ({
   default: {
     category: {
       findMany: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock("../../prisma/client.ts", () => ({
 }));
 
 // Mock logger
-vi.mock("../../src/logger.ts", () => ({
+vi.mock("../../src/core/logger.ts", () => ({
   default: {
     debug: vi.fn(),
     info: vi.fn(),

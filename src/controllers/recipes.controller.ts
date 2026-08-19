@@ -1,11 +1,11 @@
 import type { Request, Response } from "express";
 import createHttpError from "http-errors";
-import prisma from "../../prisma/client.ts";
+import prisma from "../core/database/prisma.client.ts";
 import fs from "fs/promises";
 import cloudinary from "../config/cloudinary.ts";
 import type { RecipesQuery } from "../validators/recipes.validator.ts";
 import { CreateRecipeSchema } from "../validators/recipes.validator.ts";
-import logger from "../logger.ts";
+import logger from "../core/logger.ts";
 
 const recipeListSelect = {
   id: true,

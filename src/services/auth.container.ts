@@ -1,8 +1,8 @@
-import prisma from "../../prisma/client.ts";
+import prisma from "../core/database/prisma.client.ts";
 import type { PrismaClient } from "../../generated/prisma/client.ts";
 import { AUTH_CONFIG, type AuthConfig } from "../config/auth.ts";
-import type { Clock } from "../types/common.ts";
-import { systemClock } from "../utils/clock.ts";
+import type { Clock } from "../core/types/common.ts";
+import { systemClock } from "../core/clock.ts";
 import { RefreshCookie } from "../utils/refreshCookie.ts";
 import type { PasswordHasher, SessionRepository, TokenIssuer, UserLookup } from "./auth.ports.ts";
 import { AuthenticatorService } from "./authenticator.service.ts";

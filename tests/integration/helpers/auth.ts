@@ -2,9 +2,9 @@ import request from "supertest";
 import type { Response } from "supertest";
 import { expect } from "vitest";
 import app from "../../../app.ts";
-import prisma from "../../../prisma/client.ts";
+import prisma from "../../../src/core/database/prisma.client.ts";
 import { authContainer } from "../../../src/services/auth.container.ts";
-import type { Optional } from "../../../src/types/common.ts";
+import type { Optional } from "../../../src/core/types/common.ts";
 import {
   AuthResponseSchema,
   type AuthResponse,

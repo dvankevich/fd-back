@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { registry } from "../openapi/registry.ts";
+import { registry } from "../core/openapi/registry.ts";
 import { AUTH_CONFIG } from "../config/auth.ts";
 import { AUTH_LIMITS } from "../constants/auth.ts";
-import { TIME_MS } from "../constants/time.ts";
-import { RATE_LIMIT_MESSAGE } from "../middleware/rateLimit.ts";
+import { TIME_MS } from "../core/time.ts";
+import { RATE_LIMIT_MESSAGE } from "../core/http/rate-limit.middleware.ts";
 
 const HEX_ALPHABET = "0123456789abcdef";
 const HEX_PER_BYTE = 2;

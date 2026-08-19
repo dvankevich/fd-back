@@ -1,4 +1,4 @@
-import type { Clock, Optional } from "../types/common.ts";
+import type { Clock, Optional } from "./types/common.ts";
 import { systemClock } from "./clock.ts";
 
 type TtlCacheOptions = { ttlMs: number; maxEntries?: number; clock?: Clock };

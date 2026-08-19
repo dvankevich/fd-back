@@ -1,10 +1,10 @@
 import createHttpError from "http-errors";
 import type { AuthConfig } from "../config/auth.ts";
-import { HTTP_STATUS } from "../constants/http.ts";
+import { HTTP_STATUS } from "../core/http/http-status.ts";
 import type { AuthPayload } from "../types/auth.ts";
-import type { Clock, Optional } from "../types/common.ts";
+import type { Clock, Optional } from "../core/types/common.ts";
 import { extractBearerToken } from "../utils/bearer.ts";
-import { TtlCache } from "../utils/ttlCache.ts";
+import { TtlCache } from "../core/ttl-cache.ts";
 import type { AccessTokenCodec, UserLookup } from "./auth.ports.ts";
 
 type AuthenticatorOptions = {

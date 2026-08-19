@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
-import prisma from "../../prisma/client.ts";
-import logger from "../logger.ts";
+import prisma from "../core/database/prisma.client.ts";
+import logger from "../core/logger.ts";
 
 export const getAreas = async (_req: Request, res: Response) => {
   logger.debug("Get areas list");

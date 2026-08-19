@@ -1,14 +1,14 @@
 import { env } from "./src/config/env.ts";
 import express from "express";
 import type { Request, Response } from "express";
-import { TIME_MS } from "./src/constants/time.ts";
+import { TIME_MS } from "./src/core/time.ts";
 import cors from "cors";
 import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
 import cookieParser from "cookie-parser";
 import { pinoHttp } from "pino-http";
-import { errorHandler } from "./src/middleware/errorHandler.ts";
-import logger from "./src/logger.ts";
+import { errorHandler } from "./src/core/http/error-handler.middleware.ts";
+import logger from "./src/core/logger.ts";
 
 import authRouter from "./src/routes/auth.routes.ts";
 import usersRouter from "./src/routes/users.routes.ts";
@@ -19,8 +19,8 @@ import testimonialsRouter from "./src/routes/testimonials.routes.ts";
 import recipesRouter from "./src/routes/recipes.routes.ts";
 
 import { apiReference } from "@scalar/express-api-reference";
-import { generateOpenApiDocument } from "./src/openapi.ts";
-import prisma from "./prisma/client.ts";
+import { generateOpenApiDocument } from "./src/core/openapi/document.ts";
+import prisma from "./src/core/database/prisma.client.ts";
 
 const app = express();
 

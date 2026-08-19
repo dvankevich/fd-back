@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import app from "../../app.ts";
-import prisma from "../../prisma/client.ts";
+import prisma from "../../src/core/database/prisma.client.ts";
 
 describe("Categories API (integration)", () => {
   const testCategories = [

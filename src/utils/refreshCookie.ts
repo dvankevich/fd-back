@@ -1,6 +1,6 @@
 import type { CookieOptions, Response } from "express";
-import type { Optional } from "../types/common.ts";
-import { isNonEmptyString } from "./guards.ts";
+import type { Optional } from "../core/types/common.ts";
+import { isNonEmptyString } from "../core/guards.ts";
 
 type RefreshCookieOptions = { name: string; options: CookieOptions; maxAgeMs: number };
 

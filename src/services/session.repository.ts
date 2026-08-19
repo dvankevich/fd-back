@@ -1,6 +1,6 @@
 import { Prisma, type PrismaClient } from "../../generated/prisma/client.ts";
-import { TIME_MS } from "../constants/time.ts";
-import type { Nullable } from "../types/common.ts";
+import { TIME_MS } from "../core/time.ts";
+import type { Nullable } from "../core/types/common.ts";
 import type { NewSession, SessionRepository, SessionWriter, StoredSession } from "./auth.ports.ts";
 
 type SessionDelegate = Pick<Prisma.TransactionClient, "refreshToken">;

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TIME_MS } from "../constants/time.ts";
+import { TIME_MS } from "../core/time.ts";
 
 const envSchema = z.object({
   // --- Runtime ---

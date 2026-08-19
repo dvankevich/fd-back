@@ -4,7 +4,7 @@ import createHttpError from "http-errors";
 
 // ---------- Mocks ----------
 
-vi.mock("../../prisma/client.ts", () => ({
+vi.mock("../../src/core/database/prisma.client.ts", () => ({
   default: {
     user: {
       findUnique: vi.fn(),
@@ -34,7 +34,7 @@ vi.mock("fs/promises", () => ({
   unlink: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../../src/logger.ts", () => ({
+vi.mock("../../src/core/logger.ts", () => ({
   default: {
     info: vi.fn(),
     error: vi.fn(),
@@ -43,7 +43,7 @@ vi.mock("../../src/logger.ts", () => ({
   },
 }));
 
-import prisma from "../../prisma/client.ts";
+import prisma from "../../src/core/database/prisma.client.ts";
 import cloudinary from "../../src/config/cloudinary.ts";
 import {
   getCurrentUser,

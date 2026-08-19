@@ -1,25 +1,20 @@
 import { z } from "zod";
 import type { Request, Response, NextFunction } from "express";
 import type { ParamsDictionary } from "express-serve-static-core";
-import createHttpError from "http-errors";
-import { HTTP_STATUS } from "../constants/http.ts";
-import type { ValueOf } from "../types/common.ts";
+import { BadRequestError, ValidationError, type ErrorDetails } from "../exceptions/errors.ts";
 
 const VALIDATION_FAILURE = {
-  body: { status: HTTP_STATUS.unprocessableEntity, message: "Validation failed" },
-  params: { status: HTTP_STATUS.badRequest, message: "Invalid parameters" },
-  query: { status: HTTP_STATUS.badRequest, message: "Invalid query parameters" },
+  body: (details: ErrorDetails) => new ValidationError("Validation failed", details),
+  params: (details: ErrorDetails) => new BadRequestError("Invalid parameters", details),
+  query: (details: ErrorDetails) => new BadRequestError("Invalid query parameters", details),
 } as const;
 
 const ROOT_ERROR_KEY = "body";
 
-const errorDetails = (error: z.ZodError): Record<string, string[]> => {
+const errorDetails = (error: z.ZodError): ErrorDetails => {
   const { formErrors, fieldErrors } = z.flattenError(error);
   return formErrors.length > 0 ? { [ROOT_ERROR_KEY]: formErrors, ...fieldErrors } : fieldErrors;
 };
-
-const validationError = (failure: ValueOf<typeof VALIDATION_FAILURE>, error: z.ZodError) =>
-  createHttpError(failure.status, failure.message, { details: errorDetails(error) });
 
 export const validateBody =
   <T extends z.ZodType>(schema: T) =>
@@ -27,7 +22,7 @@ export const validateBody =
     const result = schema.safeParse(req.body ?? {});
 
     if (!result.success) {
-      return next(validationError(VALIDATION_FAILURE.body, result.error));
+      return next(VALIDATION_FAILURE.body(errorDetails(result.error)));
     }
 
     req.body = result.data;
@@ -40,7 +35,7 @@ export const validateParams =
     const result = schema.safeParse(req.params);
 
     if (!result.success) {
-      return next(validationError(VALIDATION_FAILURE.params, result.error));
+      return next(VALIDATION_FAILURE.params(errorDetails(result.error)));
     }
 
     req.params = result.data;
@@ -53,7 +48,7 @@ export const validateQuery =
     const result = schema.safeParse(req.query);
 
     if (!result.success) {
-      return next(validationError(VALIDATION_FAILURE.query, result.error));
+      return next(VALIDATION_FAILURE.query(errorDetails(result.error)));
     }
 
     res.locals.query = result.data;
