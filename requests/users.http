@@ -57,3 +57,8 @@ Authorization: Bearer {{accessToken}}
 ### 7. Unfollow a user
 DELETE {{baseUrl}}/api/users/{{targetUserId}}/follow
 Authorization: Bearer {{accessToken}}
+
+### Recipes of another user
+@targetUserId = 64c8d958249fae54bae90bb9
+GET {{baseUrl}}/api/users/{{targetUserId}}/recipes?page=1&limit=10
+Authorization: Bearer {{accessToken}}

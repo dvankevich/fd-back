@@ -78,6 +78,20 @@ export class RecipesService {
     return this.favorites.markPage(await this.recipes.listPopular(page), viewerId);
   }
 
+  /** Recipes of a given owner; isFavorite is relative to viewerId (the caller). */
+  async listByOwner({
+    ownerId,
+    page,
+    viewerId,
+  }: {
+    ownerId: string;
+    page: PageRequest;
+    viewerId: Optional<string>;
+  }): Promise<Paginated<RecipeListItemView>> {
+    return this.favorites.markPage(await this.recipes.listOwn({ ownerId, page }), viewerId);
+  }
+
+  /** Current user's recipes; viewer === owner. */
   async listOwn({
     ownerId,
     page,
@@ -85,7 +99,7 @@ export class RecipesService {
     ownerId: string;
     page: PageRequest;
   }): Promise<Paginated<RecipeListItemView>> {
-    return this.favorites.markPage(await this.recipes.listOwn({ ownerId, page }), ownerId);
+    return this.listByOwner({ ownerId, page, viewerId: ownerId });
   }
 
   async getDetail({
@@ -96,11 +110,9 @@ export class RecipesService {
     viewerId: Optional<string>;
   }): Promise<RecipeDetailView> {
     const recipe = await this.recipes.findDetail(recipeId);
-
     if (!recipe) {
       throw new NotFoundError(RECIPES_MESSAGE.notFound);
     }
-
     return this.favorites.markOne(toRecipeDetailContent(recipe), viewerId);
   }
 
@@ -144,13 +156,11 @@ export class RecipesService {
     });
 
     logger.info({ ownerId, recipeId: recipe.id }, "Recipe created");
-
     return recipe;
   }
 
   async delete({ recipeId, ownerId }: { recipeId: string; ownerId: string }): Promise<void> {
     const currentOwnerId = await this.recipes.findOwnerId(recipeId);
-
     if (!currentOwnerId) {
       throw new NotFoundError(RECIPES_MESSAGE.notFound);
     }
@@ -159,7 +169,6 @@ export class RecipesService {
     }
 
     await this.recipes.delete(recipeId);
-
     logger.info({ ownerId, recipeId }, "Recipe deleted");
   }
 }
