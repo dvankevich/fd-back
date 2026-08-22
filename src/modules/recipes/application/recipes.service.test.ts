@@ -135,8 +135,12 @@ const createService = (
     recipes,
     favorites: new FavoriteMarker(favorites),
     images,
-    categories: { findByName: async () => ("category" in options ? options.category : { id: "cat-1" }) ?? null },
-    areas: { findByName: async () => ("area" in options ? options.area : { id: "area-1" }) ?? null },
+    categories: {
+      findByName: async () => ("category" in options ? options.category : { id: "cat-1" }) ?? null,
+    },
+    areas: {
+      findByName: async () => ("area" in options ? options.area : { id: "area-1" }) ?? null,
+    },
     ingredients: { findMissingIds: async () => options.missingIngredients ?? [] },
   });
   return { service, recipes, favorites, images };
@@ -234,6 +238,61 @@ describe("RecipesService", () => {
     expect(favorites.lookups).toEqual([{ userId: ownerId, recipeIds: [recipeId] }]);
   });
 
+  it("should mark another user's recipes against the viewer, not the owner", async () => {
+    const viewerId = "viewer-99";
+    const rows = [listRow, { ...listRow, id: "recipe-2" }];
+    const { service, favorites } = createService({
+      recipes: new FakeRecipes({ rows }),
+      favorites: new FakeFavorites(["recipe-2"]),
+    });
+
+    const page = await service.listByOwner({
+      ownerId,
+      page: { page: 1, limit: 10 },
+      viewerId,
+    });
+
+    expect(page.data.map(({ id, isFavorite }) => ({ id, isFavorite }))).toEqual([
+      { id: recipeId, isFavorite: false },
+      { id: "recipe-2", isFavorite: true },
+    ]);
+    expect(favorites.lookups).toEqual([
+      { userId: viewerId, recipeIds: [recipeId, "recipe-2"] },
+    ]);
+  });
+
+  it("should leave isFavorite false for a guest on another user's recipes", async () => {
+    const { service, favorites } = createService({
+      recipes: new FakeRecipes({ rows: [listRow] }),
+      favorites: new FakeFavorites([recipeId]),
+    });
+
+    const page = await service.listByOwner({
+      ownerId,
+      page: { page: 1, limit: 10 },
+      viewerId: undefined,
+    });
+
+    expect(page.data).toEqual([{ ...listRow, isFavorite: false }]);
+    expect(favorites.lookups).toEqual([]);
+  });
+
+  it("should return an empty page when the owner has no recipes", async () => {
+    const { service, favorites } = createService({
+      recipes: new FakeRecipes({ rows: [] }),
+      favorites: new FakeFavorites([recipeId]),
+    });
+
+    const page = await service.listByOwner({
+      ownerId,
+      page: { page: 1, limit: 10 },
+      viewerId: "viewer-1",
+    });
+
+    expect(page).toEqual({ data: [], total: 0, page: 1, limit: 10 });
+    expect(favorites.lookups).toEqual([]);
+  });
+
   it("should refuse an unknown category before touching the storage", async () => {
     const { service, images } = createService({ category: null });
 
@@ -269,7 +328,6 @@ describe("RecipesService", () => {
     const created = await service.create({ input, ownerId, imagePath: "/tmp/x.png" });
 
     expect(created).not.toHaveProperty("isFavorite");
-
     expect(images.uploads).toEqual([
       { path: "/tmp/x.png", folder: RECIPE_IMAGE.folder, transformation: RECIPE_IMAGE.transformation },
     ]);
