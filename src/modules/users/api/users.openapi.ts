@@ -9,6 +9,8 @@ import { UserIdParamSchema } from "./input-dto/user-id.param.input-dto.ts";
 import { AvatarResponseSchema } from "./view-dto/avatar.view-dto.ts";
 import { FollowMessageSchema } from "./view-dto/follow-message.view-dto.ts";
 import { CurrentUserSchema, PublicUserSchema, UsersListSchema } from "./view-dto/user.view-dto.ts";
+import { PaginationQuerySchema } from "../../recipes/api/input-dto/pagination-query.input-dto.ts";
+import { PaginatedRecipesSchema } from "../../recipes/api/view-dto/paginated-recipes.view-dto.ts";
 
 const USERS_RESPONSE = {
   unauthorized: unauthorizedResponse,
@@ -26,6 +28,29 @@ registry.registerPath({
   responses: {
     200: jsonResponse({ description: "Current user profile", schema: CurrentUserSchema }),
     401: USERS_RESPONSE.unauthorized,
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/users/{id}/recipes",
+  tags: ["Users"],
+  summary: "List recipes of a user",
+  description:
+    "Protected. Returns paginated recipes created by the given user. " +
+    "isFavorite is relative to the authenticated viewer, not the profile owner.",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: UserIdParamSchema,
+    query: PaginationQuerySchema,
+  },
+  responses: {
+    200: jsonResponse({
+      description: "Paginated recipes of the user",
+      schema: PaginatedRecipesSchema,
+    }),
+    401: USERS_RESPONSE.unauthorized,
+    404: USERS_RESPONSE.userNotFound,
   },
 });
 
