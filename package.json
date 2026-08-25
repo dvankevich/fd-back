@@ -28,11 +28,11 @@
   "type": "module",
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",
-    "@prisma/adapter-pg": "7.9.1",
-    "@prisma/client": "7.9.1",
-    "@scalar/express-api-reference": "^0.10.14",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "@scalar/express-api-reference": "^0.10.16",
     "bcrypt": "^6.0.0",
-    "cloudinary": "^2.10.0",
+    "cloudinary": "^2.10.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -56,21 +56,22 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.2.0",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.3.0",
     "@types/supertest": "^7.2.1",
     "@types/swagger-ui-express": "^4.1.8",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "csv-parse": "^7.0.2",
     "dotenv-cli": "^11.0.0",
-    "prisma": "7.9.1",
+    "prisma": "7.10.0",
     "supertest": "^7.2.2",
     "tsup": "^8.5.1",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "find-my-way": "^9.6.1",
-    "valibot": "^1.4.2"
+    "valibot": "^1.4.2",
+    "esbuild": "^0.28.1"
   }
 }
