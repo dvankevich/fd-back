@@ -1,258 +1,181 @@
-# Auth API Boilerplate
+# Foodies API
 
-A minimal and production-oriented boilerplate for a REST API with authentication, built with Node.js, Express, Prisma, and TypeScript.
+REST API backend for **Foodies** — a web application for browsing, saving, and creating recipes.
 
-This project contains only the authentication layer and core infrastructure.
+The API powers a React SPA: authentication, recipe catalog, favorites, user profiles, follows, and media uploads.
 
 ## Features
 
-- Registration / Login / Logout / Token refresh
-- JWT Access Token + Refresh Token (refresh tokens are stored in the database as SHA-256 hashes)
-- Validation with Zod
-- OpenAPI (Swagger UI) with proper response schemas
-- Rate limiting on auth endpoints
-- Helmet + CORS (whitelist)
-- Structured logging with Pino
-- Health checks:
-  - `GET /healthz` — liveness
-  - `GET /readyz` — readiness (checks PostgreSQL connection)
-- Graceful shutdown
-- Unit tests for auth services
+- **Auth** — register / login with email & password, JWT access tokens, rotating refresh tokens (body and/or httpOnly cookie)
+- **Recipes** — search with filters (category, area, ingredient) and pagination, popular recipes, details, create (multipart + image), own recipes, favorites
+- **`isFavorite`** — flag on recipe list/detail responses for the current viewer (optional auth on public recipe routes)
+- **Users** — current and public profiles with counters, avatar upload, follow / unfollow
+- **`GET /api/users/:id/recipes`** — paginated recipes of a profile owner (`isFavorite` relative to the viewer)
+- **Reference data** — categories (with image & description), areas, ingredients, testimonials
+- **OpenAPI** — Swagger UI (`/api-docs`) and Scalar (`/reference`), raw spec at `/api-docs.json`
+- **Ops** — health checks (`/healthz`, `/readyz`), Prisma migrations, structured logging
 
-## Tech Stack
+## Tech stack
 
-| Category           | Technology                              |
-|--------------------|-----------------------------------------|
-| Runtime            | Node.js + TypeScript                    |
-| Framework          | Express 5                               |
-| ORM                | Prisma 7 + PostgreSQL                   |
-| Validation         | Zod                                     |
-| API Documentation  | `@asteasolutions/zod-to-openapi` + Swagger UI |
-| Auth               | JWT + bcrypt + crypto (SHA-256)         |
-| Logging            | Pino + pino-http                        |
-| Testing            | Vitest                                  |
+| Layer | Technology |
+|--------|------------|
+| Runtime | Node.js, TypeScript (ESM) |
+| HTTP | Express 5 |
+| Database | PostgreSQL + Prisma |
+| Validation / docs | Zod, `@asteasolutions/zod-to-openapi` |
+| Auth | JWT (access), opaque refresh tokens, bcrypt |
+| Media | Cloudinary (avatars, recipe thumbs, category images) |
+| Tests | Vitest (unit / integration), Playwright (e2e) |
+| Deploy | Dokku-friendly (`Procfile`, `app.json`, `prisma migrate deploy`) |
+
+Code is organized in **domain modules** (`src/modules/*`): `auth`, `recipes`, `users`, `categories`, etc., each with api / application / domain / infrastructure layers.
 
 ## Requirements
 
-- Node.js 20+
-- PostgreSQL 14+
-- npm / pnpm / yarn
+- Node.js 22+ (or current LTS with ESM support)
+- PostgreSQL 16+ (17 used in Docker Compose)
+- npm
+- Cloudinary account (for image uploads; optional for read-only local exploration)
 
-## Quick Start
+## Quick start
 
-### 1. Clone and install dependencies
+### 1. Clone and install
 
 ```bash
-git clone <repo-url>
-cd <project-folder>
+git clone https://github.com/dvankevich/fd-back.git
+cd fd-back
 npm install
 ```
 
-### 2. Environment variables
+`postinstall` runs `prisma generate` and builds the project.
 
-Copy the example file and fill in the values:
+### 2. Environment
 
-```bash
-cp .env.example .env
+Create a `.env` file in the project root:
+
+```env
+NODE_ENV=development
+PORT=3000
+
+DATABASE_URL=postgresql://foodies:foodies@localhost:5432/foodies
+# Optional separate DB for integration/e2e tests
+TEST_DATABASE_URL=postgresql://foodies:foodies@localhost:5432/foodies_test
+
+JWT_SECRET=change-me-to-a-long-random-string-at-least-32-chars
+
+# Comma-separated origins, or * for local experiments
+ALLOWED_ORIGINS=http://localhost:5173
+
+# Behind reverse proxy (e.g. Dokku): set to 1
+TRUST_PROXY_HOPS=0
+
+AUTH_RATE_LIMIT_WINDOW_MS=900000
+AUTH_RATE_LIMIT_MAX=10
+
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
 ```
 
-### 3. Database setup
+### 3. Database
 
-Local PostgreSQL with Docker (creates the `foodies` and `foodies_test` databases matching `.env.example`):
-
-```bash
-docker compose up -d --wait
-```
+Start Postgres (example with Docker Compose):
 
 ```bash
-# Generate Prisma client
-npx prisma generate
-
-# Apply migrations
-npx prisma migrate dev
+docker compose up -d
 ```
 
-### 4. Run in development mode
+Apply migrations and seed reference data:
+
+```bash
+npx prisma migrate deploy
+npm run db:seed
+```
+
+Seed loads users, categories, areas, ingredients, recipes, and testimonials from CSV under `prisma/data/`.
+
+### 4. Run the API
+
+Development (hot reload):
 
 ```bash
 npm run dev
 ```
 
-The server will start at `http://localhost:3000` (or the port specified in `.env`).
+Production-style:
 
-- Swagger UI: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
-- Liveness: [http://localhost:3000/healthz](http://localhost:3000/healthz)
-- Readiness: [http://localhost:3000/readyz](http://localhost:3000/readyz)
+```bash
+npm run build
+npm start
+```
 
-## Environment Variables
+Server listens on `http://localhost:3000` (or `PORT`).
 
-| Variable            | Required | Description                                | Example                                      |
-|---------------------|----------|--------------------------------------------|----------------------------------------------|
-| `DATABASE_URL`      | Yes      | PostgreSQL connection string               | `postgresql://user:pass@localhost:5432/auth_db` |
-| `JWT_SECRET`        | Yes      | Secret for signing access tokens           | long random string                           |
-| `PORT`              | No       | Server port                                | `3000`                                       |
-| `NODE_ENV`          | No       | `development` / `production` / `test`      | `development`                                |
-| `ALLOWED_ORIGINS`   | No       | Comma-separated list of allowed origins    | `http://localhost:5173,https://myapp.com`    |
-| `AUTH_RATE_LIMIT_WINDOW_MS` | No | Rate limit window for register/login, ms  | `900000`                                     |
-| `AUTH_RATE_LIMIT_MAX` | No     | Requests per IP per window for register/login | `10`                                      |
-| `TRUST_PROXY_HOPS`  | No       | Reverse proxies in front of the app (Express `trust proxy`) | `1` behind nginx, `0` when exposed directly |
-
-> **Important:** In production always use a strong `JWT_SECRET` and restrict `ALLOWED_ORIGINS`.
+- API base: `http://localhost:3000/api`
+- Swagger UI: `http://localhost:3000/api-docs`
+- Scalar: `http://localhost:3000/reference`
+- OpenAPI JSON: `http://localhost:3000/api-docs.json`
+- Liveness: `GET /healthz`
+- Readiness (DB): `GET /readyz`
 
 ## Scripts
 
-```bash
-npm run dev                # development with hot-reload (tsx watch)
-npm start                  # production start
-npm run test               # run all tests
-npm run test:unit          # unit tests only
-npm run test:coverage      # tests with coverage
-```
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Dev server with `tsx watch` |
+| `npm run build` | Bundle `index.ts` and `prisma/seed.ts` via tsup |
+| `npm start` | Run `node dist/index.js` |
+| `npm run db:seed` | Seed database |
+| `npm run db:studio` | Prisma Studio |
+| `npm run test:unit` | Unit tests |
+| `npm run test:integration` | Integration tests (needs `TEST_DATABASE_URL`) |
+| `npm run test:e2e` | Playwright e2e |
+| `npm test` | Unit + integration |
 
-## API (Auth)
+## API overview
 
-| Method | Path                  | Description                     | Auth |
-|--------|-----------------------|---------------------------------|------|
-| POST   | `/api/auth/register`  | Register a new user             | No   |
-| POST   | `/api/auth/login`     | Login                           | No   |
-| POST   | `/api/auth/refresh`   | Refresh token pair              | No*  |
-| POST   | `/api/auth/logout`    | Logout (revoke the presented session; all sessions without a refresh token or with one that is no longer live) | Yes  |
-| GET    | `/api/auth/me`        | Get current user profile        | Yes  |
+| Area | Examples |
+|------|----------|
+| Auth | `POST /api/auth/register`, `/login`, `/refresh`, `/logout` |
+| Categories | `GET /api/categories` |
+| Areas / ingredients / testimonials | `GET /api/areas`, `/ingredients`, `/testimonials` |
+| Recipes | `GET /api/recipes`, `/popular`, `/:id`, `POST /api/recipes` (multipart), favorites, own |
+| Users | `GET /api/users/me`, `/:id`, `/:id/followers`, `/:id/recipes`, follow/unfollow, avatar |
 
-\* Refresh token can be passed in the request body or via an httpOnly cookie.
+Pagination for list endpoints typically returns:
 
-### Registration example
-
-```http
-POST /api/auth/register
-Content-Type: application/json
-
+```json
 {
-  "username": "user01",
-  "email": "user01@example.com",
-  "password": "securepass123",
-  "name": "John Doe"
+  "data": [],
+  "total": 0,
+  "page": 1,
+  "limit": 10
 }
 ```
 
-### Login example
+Errors use `{ "error": "..." }`; validation errors may include `details`.
 
-```http
-POST /api/auth/login
-Content-Type: application/json
+Interactive HTTP examples live in `requests/*.http`.
 
-{
-  "username": "user01",
-  "password": "securepass123"
-}
+## Auth notes (clients)
+
+- Send access token: `Authorization: Bearer <accessToken>`
+- Refresh: `POST /api/auth/refresh` with refresh token in JSON body and/or cookie (`Path=/api/auth`)
+- Refresh tokens are **single-use** (rotation)
+- Logout requires a valid access token
+
+## Deployment (Dokku)
+
+- `app.json` runs `npx prisma migrate deploy` on predeploy
+- Set `DATABASE_URL`, `JWT_SECRET`, `ALLOWED_ORIGINS`, Cloudinary vars, and `TRUST_PROXY_HOPS=1` behind nginx
+- Seed production data deliberately (`dokku run <app> npx prisma db seed`) — not automatic on every deploy
+
+## Project layout
+
+```text
+prisma/           schema, migrations, seed, CSV data
+src/modules/      feature modules (auth, recipes, users, …)
+src/config/       env
+src/app.ts        Express app
+requests/         HTTP client samples
 ```
-
-The response contains `accessToken`, `refreshToken`, and a `user` object.  
-The refresh token is also set as an httpOnly cookie.
-
-## Health Checks
-
-| Endpoint       | Type       | What it checks                            | Success response              |
-|----------------|------------|-------------------------------------------|-------------------------------|
-| `GET /healthz` | Liveness   | Process is alive, Event Loop is responsive | `200 { "status": "ok" }`     |
-| `GET /readyz`  | Readiness  | PostgreSQL connection (`SELECT 1`)        | `200 { "status": "ready" }`  |
-
-If the database is unavailable, `/readyz` returns `503`.
-
-These endpoints are intended for the platform (Kubernetes, Docker, Railway, Render, etc.) and are **not** documented in Swagger.
-
-## Project Structure (simplified)
-
-The code is organised by feature. Every resource is a module under
-`src/modules/` and holds its own layers, so a change to recipes stays inside
-the recipes folder.
-
-```
-├── prisma/
-│   ├── schema.prisma
-│   └── migrations/
-├── requests/                     # .http files for manual checks
-├── src/
-│   ├── app.ts                    # middleware, module mounting, 404, error handler
-│   ├── app.module.ts             # the modules the app mounts
-│   ├── bootstrap.ts              # listen + graceful shutdown
-│   ├── config/env.ts             # validated environment
-│   ├── core/                     # shared: http, database, openapi, errors, logger
-│   └── modules/
-│       ├── auth/
-│       │   ├── api/              # controller, router, dto schemas, openapi paths
-│       │   ├── application/      # use cases
-│       │   ├── domain/           # types, ports, rules, messages
-│       │   ├── infrastructure/   # prisma, bcrypt, jwt
-│       │   ├── auth.config.ts
-│       │   ├── auth.module.ts    # wiring, exports { path, router }
-│       │   └── index.ts          # what other modules may import
-│       ├── users/ recipes/ categories/ areas/ ingredients/ testimonials/
-│       ├── media/                # image storage behind a port
-│       └── health/               # /healthz and /readyz
-├── tests/                        # integration and e2e; unit tests sit next to the code
-├── index.ts                      # entry point
-└── package.json
-```
-
-The layers point inward: `api` speaks HTTP, `application` holds the use cases,
-`domain` holds the types and the rules, `infrastructure` holds prisma and the
-external services. A module reaches another module only through its
-`index.ts`.
-
-## Deployment
-
-### General recommendations
-
-1. Set `NODE_ENV=production`.
-2. Always use a strong `JWT_SECRET`.
-3. Restrict `ALLOWED_ORIGINS`.
-4. Configure platform health checks:
-   - Liveness → `/healthz`
-   - Readiness → `/readyz`
-5. The project supports graceful shutdown (`SIGTERM` / `SIGINT`).
-
-### Example for Docker / Kubernetes
-
-```yaml
-livenessProbe:
-  httpGet:
-    path: /healthz
-    port: 3000
-  initialDelaySeconds: 5
-  periodSeconds: 10
-
-readinessProbe:
-  httpGet:
-    path: /readyz
-    port: 3000
-  initialDelaySeconds: 5
-  periodSeconds: 10
-```
-
-### Production migrations
-
-```bash
-npx prisma migrate deploy
-```
-
-## Testing
-
-Unit tests currently cover the authentication services (`createTokens`, hashing, etc.).
-
-```bash
-npm run test:unit
-```
-
-Integration tests require a separate test database (`TEST_DATABASE_URL`).
-
-## Security (summary)
-
-- Passwords are hashed with bcrypt.
-- Refresh tokens are stored in the database **only as SHA-256 hashes**.
-- Access tokens have a short lifetime.
-- On refresh the old token is marked as used (rotation); reusing it after a short grace window revokes all sessions of the user (used tokens are kept until they expire for this check).
-- Sensitive headers are redacted in logs.
-- Rate limiting is applied to `/api/auth/register` and `/api/auth/login`.
-
----
