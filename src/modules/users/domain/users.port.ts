@@ -34,7 +34,7 @@ export interface UsersRepository {
 }
 
 export interface FollowsRepository {
-  listFollowers(userId: string): Promise<UserListItemView[]>;
+  listFollowers(userId: string, excludeUserId?: string): Promise<UserListItemView[]>;
   listFollowing(userId: string): Promise<UserListItemView[]>;
   exists(pair: FollowPair): Promise<boolean>;
   create(pair: FollowPair): Promise<void>;

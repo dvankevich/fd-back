@@ -51,7 +51,12 @@ export class UsersController {
   };
 
   getFollowers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    res.status(HTTP_STATUS.ok).json(await this.follows.listFollowers(String(req.params.id)));
+    const profileId = String(req.params.id);
+    const viewerId = req.user.sub;
+
+    res.status(HTTP_STATUS.ok).json(
+      await this.follows.listFollowers(profileId, viewerId),
+    );
   };
 
   getFollowing = async (req: AuthenticatedRequest, res: Response): Promise<void> => {

@@ -118,7 +118,7 @@ registry.registerPath({
   tags: ["Users"],
   summary: "Get user followers",
   description:
-    "Returns users who follow the given profile. Each item has id, name, avatar only.",
+    "Returns users who follow the given profile. Each item has id, name, avatar only. The authenticated viewer is omitted from the list when they follow this user, so the UI does not show the current user in another profile’s followers.",
   security: [{ bearerAuth: [] }],
   request: { params: UserIdParamSchema },
   responses: {
