@@ -15,10 +15,9 @@ export class FollowsService {
     this.users = users;
   }
 
-  async listFollowers(userId: string): Promise<UsersListView> {
+  async listFollowers(userId: string, viewerId?: string): Promise<UsersListView> {
     await this.assertUserExists(userId);
-
-    return { users: await this.follows.listFollowers(userId) };
+    return { users: await this.follows.listFollowers(userId, viewerId) };
   }
 
   async listFollowing(userId: string): Promise<UsersListView> {

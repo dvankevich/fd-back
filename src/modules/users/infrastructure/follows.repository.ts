@@ -9,11 +9,16 @@ const followKey = ({ followerId, followingId }: FollowPair) => ({
 });
 
 export class PrismaFollowsRepository implements FollowsRepository {
-  constructor(private readonly client: PrismaClient) {}
+  constructor(private readonly client: PrismaClient) { }
 
-  async listFollowers(userId: string): Promise<UserListItemView[]> {
+  async listFollowers(userId: string, excludeUserId?: string): Promise<UserListItemView[]> {
     const follows = await this.client.follow.findMany({
-      where: { followingId: userId },
+      where: {
+        followingId: userId,
+        followerId: {
+          notIn: [userId, ...(excludeUserId && excludeUserId !== userId ? [excludeUserId] : [])],
+        },
+      },
       select: { follower: { select: userListItemSelect } },
       orderBy: { createdAt: "desc" },
     });
@@ -22,7 +27,10 @@ export class PrismaFollowsRepository implements FollowsRepository {
 
   async listFollowing(userId: string): Promise<UserListItemView[]> {
     const follows = await this.client.follow.findMany({
-      where: { followerId: userId },
+      where: {
+        followerId: userId,
+        followingId: { not: userId },
+      },
       select: { following: { select: userListItemSelect } },
       orderBy: { createdAt: "desc" },
     });
